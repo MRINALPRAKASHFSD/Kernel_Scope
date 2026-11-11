@@ -10,3 +10,13 @@ def integer_list(values, name, minimum=0, allow_empty=False):
     if not isinstance(values, list) or (not values and not allow_empty):
         raise ValueError(f"{name} must be {'a' if allow_empty else 'a nonempty'} list")
     return [integer(v, f"{name}[{i}]", minimum) for i, v in enumerate(values)]
+
+
+def matrix(values, name, rows, cols):
+    if not isinstance(values, list) or len(values) != rows:
+        raise ValueError(f"{name} must have {rows} rows")
+    for i, row in enumerate(values):
+        if not isinstance(row, list) or len(row) != cols:
+            raise ValueError(f"{name}[{i}] must have {cols} columns")
+        integer_list(row, f"{name}[{i}]", 0, allow_empty=True)
+    return values
