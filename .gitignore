@@ -4,5 +4,7 @@ __pycache__/
 .pytest_cache/
 .coverage
 
-# Editor metadata
+# Runtime logs and archives
+outputs/*.log
+*.zip
 .DS_Store
