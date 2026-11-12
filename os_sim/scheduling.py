@@ -51,3 +51,36 @@ def schedule(processes, algorithm="FCFS", quantum=2):
             else:
                 chosen = min(arrived, key=lambda p: (p["burst"], p["arrival"], next(i for i, pp in ordered if pp is p)))
             pending.remove(chosen)
+            run(chosen["pid"], chosen["burst"])
+    else:
+        from collections import deque
+        queue = deque()
+        index = 0
+        while len(finish) < len(ordered):
+            if not queue:
+                if index < len(ordered) and ordered[index][1]["arrival"] > clock:
+                    clock = ordered[index][1]["arrival"]
+                while index < len(ordered) and ordered[index][1]["arrival"] <= clock:
+                    queue.append(ordered[index][1]); index += 1
+            p = queue.popleft()
+            run(p["pid"], min(quantum, remaining[p["pid"]]))
+            # Newly arrived processes enter before the just-run process rejoins.
+            while index < len(ordered) and ordered[index][1]["arrival"] <= clock:
+                queue.append(ordered[index][1]); index += 1
+            if remaining[p["pid"]]:
+                queue.append(p)
+
+    metrics = []
+    for p in processes:
+        turnaround = finish[p["pid"]] - p["arrival"]
+        metrics.append({"pid": p["pid"], "completion": finish[p["pid"]],
+                        "turnaround": turnaround, "waiting": turnaround - p["burst"]})
+    n = len(processes)
+    total_burst = sum(p["burst"] for p in processes)
+    elapsed = max(finish.values()) - min(p["arrival"] for p in processes)
+    return {"algorithm": algorithm, "quantum": quantum if algorithm == "RR" else None,
+            "metrics": metrics, "gantt": segments,
+            "average_waiting": round(sum(m["waiting"] for m in metrics) / n, 3),
+            "average_turnaround": round(sum(m["turnaround"] for m in metrics) / n, 3),
+            "cpu_utilization_percent": round(100 * total_burst / elapsed, 3),
+            "throughput": round(n / elapsed, 4)}
