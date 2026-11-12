@@ -21,3 +21,14 @@ def simulate(references, frames, algorithm="FIFO"):
                 elif algorithm == "LRU":
                     victim = min(resident, key=lambda p: last_used[p])
                 else:
+                    future = references[step + 1:]
+                    victim = max(resident, key=lambda p: future.index(p) if p in future else float("inf"))
+                resident.remove(victim)
+                loaded_at.pop(victim); last_used.pop(victim)
+            resident.append(page)
+            loaded_at[page] = step
+        last_used[page] = step
+        trace.append({"step": step + 1, "page": page, "result": "HIT" if hit else "FAULT", "frames": resident.copy()})
+    return {"algorithm": algorithm, "frames": frames, "references": len(references),
+            "hits": hits, "faults": faults, "hit_rate_percent": round(100 * hits / len(references), 3),
+            "fault_rate_percent": round(100 * faults / len(references), 3), "trace": trace}
