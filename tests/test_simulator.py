@@ -61,6 +61,25 @@ class SchedulingTests(unittest.TestCase):
             schedule([{"pid": "", "arrival": 0, "burst": 1}])
 
 
+class MemoryTests(unittest.TestCase):
+    def test_known_sequence(self):
+        refs = [1, 2, 3, 1, 4, 1, 2]
+        self.assertEqual(simulate(refs, 3, "FIFO")["faults"], 6)
+        self.assertEqual(simulate(refs, 3, "LRU")["faults"], 5)
+        self.assertEqual(simulate(refs, 3, "OPT")["faults"], 4)
+
+    def test_faults_plus_hits(self):
+        for algo in ("FIFO", "LRU", "OPT"):
+            r = simulate([0, 1, 0, 1], 2, algo)
+            self.assertEqual(r["hits"] + r["faults"], 4)
+
+    def test_rejections(self):
+        for refs, frames in (([], 2), ([1], 0), ([-1], 2)):
+            with self.assertRaises(ValueError): simulate(refs, frames)
+        with self.assertRaises(ValueError): simulate([1], 1, "RANDOM")
+        with self.assertRaises(ValueError): simulate([True], 1)
+
+
 
 if __name__ == "__main__":
     unittest.main()
