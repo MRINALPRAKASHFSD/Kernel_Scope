@@ -49,3 +49,18 @@ class SchedulingTests(unittest.TestCase):
 
     def test_bad_input(self):
         for bad in ([], [{"pid": "A", "arrival": -1, "burst": 1}],
+                    [{"pid": "A", "arrival": 0, "burst": 0}],
+                    [{"pid": "A", "arrival": 0, "burst": 1}] * 2):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                schedule(bad)
+        with self.assertRaises(ValueError): schedule(self.jobs, "RR", 0)
+        with self.assertRaises(ValueError): schedule(self.jobs, "unknown")
+        with self.assertRaises(ValueError):
+            schedule([{"pid": "A", "arrival": True, "burst": 1}])
+        with self.assertRaises(ValueError):
+            schedule([{"pid": "", "arrival": 0, "burst": 1}])
+
+
+
+if __name__ == "__main__":
+    unittest.main()
