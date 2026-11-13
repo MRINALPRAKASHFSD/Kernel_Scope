@@ -80,6 +80,39 @@ class MemoryTests(unittest.TestCase):
         with self.assertRaises(ValueError): simulate([True], 1)
 
 
+class DeadlockTests(unittest.TestCase):
+    def test_safe(self):
+        r = banker([1], [[1], [1]], [[0], [0]])
+        self.assertTrue(r["safe"])
+        self.assertEqual(len(r["safe_sequence"]), 2)
+
+    def test_unsafe(self):
+        r = banker([0], [[2], [2]], [[1], [1]])
+        self.assertFalse(r["safe"])
+        self.assertEqual(r["unfinished"], ["P0", "P1"])
+
+    def test_invalid(self):
+        with self.assertRaises(ValueError): banker([1], [[1]], [[2]])
+        with self.assertRaises(ValueError): banker([1, 2], [[1]], [[0]])
+        with self.assertRaises(ValueError): banker([1], [[1, 2]], [[0, 0]])
+        with self.assertRaises(ValueError): banker([True], [[1]], [[0]])
+
+    def test_multi_resource_safe_sequence_and_need(self):
+        available = [3, 3, 2]
+        maximum = [[7, 5, 3], [3, 2, 2], [9, 0, 2], [2, 2, 2], [4, 3, 3]]
+        allocation = [[0, 1, 0], [2, 0, 0], [3, 0, 2], [2, 1, 1], [0, 0, 2]]
+        result = banker(available, maximum, allocation)
+        self.assertTrue(result["safe"])
+        self.assertEqual(result["safe_sequence"], ["P1", "P3", "P0", "P2", "P4"])
+        self.assertEqual(result["need"], [[7, 4, 3], [1, 2, 2], [6, 0, 0], [0, 1, 1], [4, 3, 1]])
+        self.assertEqual(result["trace"][-1]["available_after"], [10, 5, 7])
+
+    def test_multi_resource_validation(self):
+        with self.assertRaises(ValueError): banker([3, -1], [[1, 1]], [[0, 0]])
+        with self.assertRaises(ValueError): banker([1, 1], [[1, 1]], [[0]])
+        with self.assertRaises(ValueError): banker([1, 1], [[1, 1]], [[0, 0, 0]])
+
+
 
 if __name__ == "__main__":
     unittest.main()
