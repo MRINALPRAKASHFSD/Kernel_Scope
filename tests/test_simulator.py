@@ -113,6 +113,21 @@ class DeadlockTests(unittest.TestCase):
         with self.assertRaises(ValueError): banker([1, 1], [[1, 1]], [[0, 0, 0]])
 
 
+class StorageTests(unittest.TestCase):
+    def test_fcfs(self):
+        r = disk_schedule([10, 50], 20, 100)
+        self.assertEqual(r["total_head_movement"], 50)
+
+    def test_sstf(self):
+        r = disk_schedule([10, 50, 21], 20, 100, "SSTF")
+        self.assertEqual(r["route"], [20, 21, 10, 50])
+        self.assertEqual(r["total_head_movement"], 52)
+
+    def test_scan_boundary(self):
+        r = disk_schedule([10, 50], 20, 100, "SCAN", "up")
+        self.assertEqual(r["route"], [20, 50, 99, 10])
+        self.assertEqual(r["total_head_movement"], 168)
+
 
 if __name__ == "__main__":
     unittest.main()
