@@ -28,3 +28,16 @@ On this four-job queue, non-preemptive SJF finishes with the lowest average wait
 
 OPT drops faults down to 7 by evicting whichever resident page is needed farthest in the future. Because real operating systems cannot see future memory accesses, OPT serves strictly as an offline benchmark. Between the two online policies, LRU edges out FIFO (9 faults vs. 10) on this 13-reference stream by keeping recently touched pages in memory, though different access loops and frame counts can narrow or flip that gap.
 
+## Deadlock safety snapshot
+
+Banker's safety check marks the baseline state `SAFE` and finds the completion order `P1 -> P3 -> P0 -> P2 -> P4`. Following that order, each process can claim its remaining `Need`, finish work, and return its held resources to the available pool. By contrast, `samples/unsafe.json` leaves `P0` and `P1` unfinished because zero free units remain while both still need one more unit. Note that an `UNSAFE` verdict flags deadlock risk under worst-case future requests rather than proving that processes are deadlocked right now.
+
+## Disk scheduling comparison (cylinder movements)
+
+| Algorithm | Total movement | Average movement/request |
+|---|---:|---:|
+| FCFS | 640 | 80.000 |
+| SSTF | 236 | 29.500 |
+| SCAN up | 331 | 41.375 |
+
+SSTF cuts head travel to 236 cylinders by picking the closest pending request each step, at the risk of starving far-away tracks if nearby requests keep arriving. Full-sweep SCAN moves upward from 53 through 183, touches the upper boundary at cylinder 199, and reverses down to 37 and 14 for 331 total cylinders of movement. Travelling to 199 costs extra distance compared with SSTF, but bounds how long opposite-end requests wait. FCFS honors arrival order and zigzags across the platter for 640 cylinders. Note that cylinder distance approximates seek mechanics on spinning platters rather than flash translation layers on SSDs.

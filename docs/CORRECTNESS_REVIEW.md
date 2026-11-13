@@ -30,3 +30,24 @@ Shared workload: reference sequence `[7, 0, 1, 2, 0, 3, 0, 4, 2, 3, 0, 3, 2]` ac
 
 FIFO evicts the page that entered memory earliest, LRU evicts the resident page whose most recent access is oldest, and OPT evicts the resident page whose next reference lies farthest ahead (or never occurs again). Across every run, `hits + faults` equals `len(references)`. A separate test sequence (`[1, 2, 3, 1, 4, 1, 2]` with 3 frames) also matches hand-worked counts of FIFO `6`, LRU `5`, and OPT `4` faults. OPT sets the offline lower bound, while LRU and FIFO are online policies whose relative order depends on locality in the workload.
 
+## Deadlock handling
+
+On `samples/baseline.json`, Banker's check returns `SAFE` with completion order `P1 -> P3 -> P0 -> P2 -> P4`.
+
+On `samples/unsafe.json` (`available = [0]`, `maximum = [[2], [2]]`, `allocation = [[1], [1]]`), it returns `UNSAFE` with no safe sequence and unfinished list `["P0", "P1"]`.
+
+Internally, `need` equals `maximum - allocation`, `work` starts as a copy of `available`, and a process only runs when every element of `need[i]` is less than or equal to `work`. When process `i` completes, its `allocation[i]` is added to `work`. Because Banker evaluates worst-case remaining demand on a static snapshot, an unsafe result warns of potential deadlock rather than proving an active cycle of blocked processes.
+
+## Disk scheduling
+
+Shared workload: requests `[98, 183, 37, 122, 14, 124, 65, 67]`, initial head `53`, `200` cylinders (`0..199`), and SCAN direction `up`.
+
+| Algorithm | Measured route | Measured movement | Average/request |
+|---|---:|---:|---:|
+| FCFS | 53 -> 98 -> 183 -> 37 -> 122 -> 14 -> 124 -> 65 -> 67 | 640 | 80.000 |
+| SSTF | 53 -> 65 -> 67 -> 37 -> 14 -> 98 -> 122 -> 124 -> 183 | 236 | 29.500 |
+| SCAN up | 53 -> 65 -> 67 -> 98 -> 122 -> 124 -> 183 -> 199 -> 37 -> 14 | 331 | 41.375 |
+
+FCFS follows queue order. SSTF greedily picks the minimum `abs(req - current_head)` and breaks ties by input index. Full-sweep SCAN serves all requests in the chosen direction, reaches the physical end of the disk (`199` going up, `0` going down) on every non-empty queue, counts that boundary leg in total movement, and reverses to clear remaining requests. Requests matching the starting head position do not add a duplicate cylinder entry, duplicate requests elsewhere stay counted individually with `0` extra movement between identical stops, and empty queues return `[head]` with `0` movement.
+
+## Full-sweep SCAN boundary fix
