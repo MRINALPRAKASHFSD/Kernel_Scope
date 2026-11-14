@@ -226,6 +226,58 @@ class IntegrationTests(unittest.TestCase):
             self.assertEqual([row["average_movement_per_request"] for row in storage_rows], ["80.0", "29.5", "41.375"])
             self.assertEqual(run(DEFAULT_DATA, tmp), 0)
 
+    def test_successful_cli_writes_activity_log(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / "output"
+            log = Path(tmp) / "activity.log"
+            completed = subprocess.run(
+                [sys.executable, "-m", "os_sim.cli", "--mode", "demo",
+                 "--dataset", str(DEFAULT_DATA), "--output", str(output), "--log", str(log)],
+                cwd=Path(__file__).resolve().parents[1], capture_output=True, text=True)
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            self.assertIn("Analysis completed", completed.stdout)
+            self.assertIn("INFO Analysis completed for", log.read_text(encoding="utf-8"))
+
+    def test_invalid_cli_writes_exception_to_activity_log(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / "output"
+            log = Path(tmp) / "activity.log"
+            invalid = DEFAULT_DATA.parent / "invalid.json"
+            completed = subprocess.run(
+                [sys.executable, "-m", "os_sim.cli", "--mode", "demo",
+                 "--dataset", str(invalid), "--output", str(output), "--log", str(log)],
+                cwd=Path(__file__).resolve().parents[1], capture_output=True, text=True)
+            self.assertEqual(completed.returncode, 2)
+            self.assertIn("ERROR: arrival must be an integer >= 0", completed.stderr)
+            log_text = log.read_text(encoding="utf-8")
+            self.assertIn("ERROR Analysis failed for dataset", log_text)
+            self.assertIn("ValueError: arrival must be an integer >= 0", log_text)
+            self.assertFalse((output / "results.json").exists())
+
+    def test_invalid_integrated_dataset(self):
+        path = DEFAULT_DATA.parent / "invalid.json"
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(run(path, tmp), 2)
+            self.assertFalse((Path(tmp) / "results.json").exists())
+
+    def test_malformed_json_returns_failure_status(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            bad_path = Path(tmp) / "malformed.json"
+            bad_path.write_text("{not valid json", encoding="utf-8")
+            self.assertEqual(run(bad_path, Path(tmp) / "outputs"), 2)
+            self.assertFalse((Path(tmp) / "outputs" / "results.json").exists())
+
+    def test_missing_dataset_keys_are_rejected_before_exports(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / "outputs"
+            incomplete = {"processes": [], "memory": {}, "deadlock": {}, "storage": {}}
+            self.assertRaises(ValueError, analyze, incomplete)
+            write_result = run
+            data_path = Path(tmp) / "missing.json"
+            data_path.write_text(json.dumps(incomplete), encoding="utf-8")
+            self.assertEqual(write_result(data_path, output), 2)
+            self.assertFalse((output / "results.json").exists())
+
 
 if __name__ == "__main__":
     unittest.main()
