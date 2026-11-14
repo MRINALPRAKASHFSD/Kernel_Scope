@@ -20,3 +20,12 @@ Thirteen live Chromium captures sit in `evidence/browser/` and are indexed in [`
 
 Why run every algorithm in a module on the exact same input? Holding the workload fixed isolates the scheduling or replacement policy as the only variable changing the metric.
 
+Why did Round Robin average 5.00 waiting units while SJF averaged 4.00? Round Robin trades total wait time for fairer turn-taking across ready jobs, and this discrete simulator also omits context-switch overhead.
+
+Can Optimal page replacement run inside a real OS kernel? No. Evicting the page needed farthest in the future requires knowing upcoming memory accesses ahead of time, so OPT is strictly an offline lower bound.
+
+Does an `UNSAFE` Banker result mean the system is deadlocked? No. It only means Banker's algorithm cannot guarantee a safe completion order if every process immediately asks for its full remaining `Need`.
+
+When does SSTF cause trouble despite low total head movement? Under a steady stream of requests near the current cylinder, distant tracks can starve indefinitely.
+
+What role does `run.sh` play? It resolves the repo root regardless of the caller's working directory, checks that `python3` is installed, logs the invocation to `outputs/launcher.log`, and passes CLI flags and exit codes straight through.
