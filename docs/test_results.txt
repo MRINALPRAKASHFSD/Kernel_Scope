@@ -1,0 +1,100 @@
+Command: python3 -m unittest discover -s tests -v
+
+test_invalid (test_simulator.DeadlockTests.test_invalid) ... ok
+test_multi_resource_safe_sequence_and_need (test_simulator.DeadlockTests.test_multi_resource_safe_sequence_and_need) ... ok
+test_multi_resource_validation (test_simulator.DeadlockTests.test_multi_resource_validation) ... ok
+test_safe (test_simulator.DeadlockTests.test_safe) ... ok
+test_unsafe (test_simulator.DeadlockTests.test_unsafe) ... ok
+test_all_modules_and_evidence (test_simulator.IntegrationTests.test_all_modules_and_evidence) ... ok
+test_invalid_cli_writes_exception_to_activity_log (test_simulator.IntegrationTests.test_invalid_cli_writes_exception_to_activity_log) ... ok
+test_invalid_integrated_dataset (test_simulator.IntegrationTests.test_invalid_integrated_dataset) ... Analysis failed for dataset /Users/mrinalprakash/Downloads/os_resource_capstone/samples/invalid.json
+Traceback (most recent call last):
+  File "/Users/mrinalprakash/Downloads/os_resource_capstone/os_sim/cli.py", line 27, in run
+    result = write_report(dataset, output)
+  File "/Users/mrinalprakash/Downloads/os_resource_capstone/os_sim/reporting.py", line 58, in write_report
+    results = analyze(dataset)
+  File "/Users/mrinalprakash/Downloads/os_resource_capstone/os_sim/reporting.py", line 23, in analyze
+    "scheduling": [schedule(dataset["processes"], a, dataset.get("quantum", 2)) for a in ("FCFS", "SJF", "RR")],
+                   ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mrinalprakash/Downloads/os_resource_capstone/os_sim/scheduling.py", line 20, in schedule
+    validate(processes)
+    ~~~~~~~~^^^^^^^^^^^
+  File "/Users/mrinalprakash/Downloads/os_resource_capstone/os_sim/scheduling.py", line 15, in validate
+    integer(p.get("arrival"), "arrival", 0)
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mrinalprakash/Downloads/os_resource_capstone/os_sim/validation.py", line 5, in integer
+    raise ValueError(f"{name} must be an integer >= {minimum}")
+ValueError: arrival must be an integer >= 0
+ERROR: arrival must be an integer >= 0
+ok
+test_malformed_json_returns_failure_status (test_simulator.IntegrationTests.test_malformed_json_returns_failure_status) ... Analysis failed for dataset /var/folders/3p/ygy8kywn01q3cj7wf6jb6j0h0000gn/T/tmpiy_glae_/malformed.json
+Traceback (most recent call last):
+  File "/Users/mrinalprakash/Downloads/os_resource_capstone/os_sim/cli.py", line 26, in run
+    dataset = load(data_path)
+  File "/Users/mrinalprakash/Downloads/os_resource_capstone/os_sim/cli.py", line 21, in load
+    return json.load(file)
+           ~~~~~~~~~^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.4/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 298, in load
+    return loads(fp.read(),
+        cls=cls, object_hook=object_hook,
+        parse_float=parse_float, parse_int=parse_int,
+        parse_constant=parse_constant, object_pairs_hook=object_pairs_hook, **kw)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.4/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.4/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.4/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+ERROR: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+ok
+test_missing_dataset_keys_are_rejected_before_exports (test_simulator.IntegrationTests.test_missing_dataset_keys_are_rejected_before_exports) ... Analysis failed for dataset /var/folders/3p/ygy8kywn01q3cj7wf6jb6j0h0000gn/T/tmp3l008yba/missing.json
+Traceback (most recent call last):
+  File "/Users/mrinalprakash/Downloads/os_resource_capstone/os_sim/cli.py", line 27, in run
+    result = write_report(dataset, output)
+  File "/Users/mrinalprakash/Downloads/os_resource_capstone/os_sim/reporting.py", line 58, in write_report
+    results = analyze(dataset)
+  File "/Users/mrinalprakash/Downloads/os_resource_capstone/os_sim/reporting.py", line 17, in analyze
+    raise ValueError("memory must be an object with frames and references")
+ValueError: memory must be an object with frames and references
+ERROR: memory must be an object with frames and references
+ok
+test_successful_cli_writes_activity_log (test_simulator.IntegrationTests.test_successful_cli_writes_activity_log) ... ok
+test_faults_plus_hits (test_simulator.MemoryTests.test_faults_plus_hits) ... ok
+test_known_sequence (test_simulator.MemoryTests.test_known_sequence) ... ok
+test_rejections (test_simulator.MemoryTests.test_rejections) ... ok
+test_bad_input (test_simulator.SchedulingTests.test_bad_input) ... ok
+test_fcfs_metrics (test_simulator.SchedulingTests.test_fcfs_metrics) ... ok
+test_idle_and_single_process (test_simulator.SchedulingTests.test_idle_and_single_process) ... ok
+test_rr_arrivals (test_simulator.SchedulingTests.test_rr_arrivals) ... ok
+test_rr_idle_period_starts_at_next_arrival (test_simulator.SchedulingTests.test_rr_idle_period_starts_at_next_arrival) ... ok
+test_sjf_arrival_and_burst_ties_use_stable_input_order (test_simulator.SchedulingTests.test_sjf_arrival_and_burst_ties_use_stable_input_order) ... ok
+test_empty_and_invalid (test_simulator.StorageTests.test_empty_and_invalid) ... ok
+test_fcfs (test_simulator.StorageTests.test_fcfs) ... ok
+test_scan_boundary (test_simulator.StorageTests.test_scan_boundary) ... ok
+test_scan_boundary_requests_and_heads (test_simulator.StorageTests.test_scan_boundary_requests_and_heads) ... ok
+test_scan_down_boundary (test_simulator.StorageTests.test_scan_down_boundary) ... ok
+test_scan_duplicate_requests_are_served_with_zero_extra_movement (test_simulator.StorageTests.test_scan_duplicate_requests_are_served_with_zero_extra_movement) ... ok
+test_scan_one_sided_queues_sweep_to_endpoint (test_simulator.StorageTests.test_scan_one_sided_queues_sweep_to_endpoint) ... ok
+test_scan_request_at_head_has_no_duplicate_stop (test_simulator.StorageTests.test_scan_request_at_head_has_no_duplicate_stop) ... ok
+test_sstf (test_simulator.StorageTests.test_sstf) ... ok
+test_sstf_duplicate_ties_use_original_input_order (test_simulator.StorageTests.test_sstf_duplicate_ties_use_original_input_order) ... ok
+
+----------------------------------------------------------------------
+Ran 30 tests in 0.115s
+
+OK
+Analysis completed. Output folder: /var/folders/3p/ygy8kywn01q3cj7wf6jb6j0h0000gn/T/tmp21mpw2jn
+CPU FCFS: avg wait=4.75, avg turnaround=8.75
+CPU SJF: avg wait=4.0, avg turnaround=8.0
+CPU RR: avg wait=5.0, avg turnaround=9.0
+MEM FIFO: faults=10, hits=3
+MEM LRU: faults=9, hits=4
+MEM OPT: faults=7, hits=6
+BANKER: SAFE; sequence=['P1', 'P3', 'P0', 'P2', 'P4']
+DISK FCFS: head movement=640
+DISK SSTF: head movement=236
+DISK SCAN: head movement=331
