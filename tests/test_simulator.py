@@ -189,6 +189,95 @@ class StorageTests(unittest.TestCase):
         with self.assertRaises(ValueError): disk_schedule([], 0, 0)
 
 
+class IntegrationTests(unittest.TestCase):
+    def test_all_modules_and_evidence(self):
+        data = json.loads(DEFAULT_DATA.read_text())
+        result = analyze(data)
+        self.assertEqual(set(result), {"scheduling", "memory", "deadlock", "storage"})
+        self.assertTrue(result["deadlock"]["safe"])
+        with tempfile.TemporaryDirectory() as tmp:
+            write_report(data, tmp)
+            for name in ("results.json", "scheduling.csv", "memory.csv", "storage.csv",
+                         "scheduling.svg", "memory.svg", "storage.svg"):
+                self.assertTrue((Path(tmp) / name).is_file(), name)
+                self.assertGreater((Path(tmp) / name).stat().st_size, 0)
+            exported = json.loads((Path(tmp) / "results.json").read_text(encoding="utf-8"))
+            self.assertEqual([x["average_waiting"] for x in exported["scheduling"]], [4.75, 4.0, 5.0])
+            self.assertEqual([x["average_turnaround"] for x in exported["scheduling"]], [8.75, 8.0, 9.0])
+            self.assertEqual([x["cpu_utilization_percent"] for x in exported["scheduling"]], [100.0, 100.0, 100.0])
+            self.assertEqual([x["throughput"] for x in exported["scheduling"]], [0.25, 0.25, 0.25])
+            self.assertEqual([x["faults"] for x in exported["memory"]], [10, 9, 7])
+            self.assertEqual([x["hits"] for x in exported["memory"]], [3, 4, 6])
+            self.assertEqual([x["fault_rate_percent"] for x in exported["memory"]], [76.923, 69.231, 53.846])
+            self.assertEqual(exported["deadlock"]["safe_sequence"], ["P1", "P3", "P0", "P2", "P4"])
+            self.assertEqual([x["total_head_movement"] for x in exported["storage"]], [640, 236, 331])
+            self.assertEqual([x["average_movement_per_request"] for x in exported["storage"]], [80.0, 29.5, 41.375])
+            with (Path(tmp) / "scheduling.csv").open(newline="", encoding="utf-8") as file:
+                cpu_rows = list(csv.DictReader(file))
+            with (Path(tmp) / "memory.csv").open(newline="", encoding="utf-8") as file:
+                memory_rows = list(csv.DictReader(file))
+            with (Path(tmp) / "storage.csv").open(newline="", encoding="utf-8") as file:
+                storage_rows = list(csv.DictReader(file))
+            self.assertEqual([row["average_waiting"] for row in cpu_rows], ["4.75", "4.0", "5.0"])
+            self.assertEqual([row["average_turnaround"] for row in cpu_rows], ["8.75", "8.0", "9.0"])
+            self.assertEqual([row["faults"] for row in memory_rows], ["10", "9", "7"])
+            self.assertEqual([row["hits"] for row in memory_rows], ["3", "4", "6"])
+            self.assertEqual([row["total_head_movement"] for row in storage_rows], ["640", "236", "331"])
+            self.assertEqual([row["average_movement_per_request"] for row in storage_rows], ["80.0", "29.5", "41.375"])
+            self.assertEqual(run(DEFAULT_DATA, tmp), 0)
+
+    def test_successful_cli_writes_activity_log(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / "output"
+            log = Path(tmp) / "activity.log"
+            completed = subprocess.run(
+                [sys.executable, "-m", "os_sim.cli", "--mode", "demo",
+                 "--dataset", str(DEFAULT_DATA), "--output", str(output), "--log", str(log)],
+                cwd=Path(__file__).resolve().parents[1], capture_output=True, text=True)
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            self.assertIn("Analysis completed", completed.stdout)
+            self.assertIn("INFO Analysis completed for", log.read_text(encoding="utf-8"))
+
+    def test_invalid_cli_writes_exception_to_activity_log(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / "output"
+            log = Path(tmp) / "activity.log"
+            invalid = DEFAULT_DATA.parent / "invalid.json"
+            completed = subprocess.run(
+                [sys.executable, "-m", "os_sim.cli", "--mode", "demo",
+                 "--dataset", str(invalid), "--output", str(output), "--log", str(log)],
+                cwd=Path(__file__).resolve().parents[1], capture_output=True, text=True)
+            self.assertEqual(completed.returncode, 2)
+            self.assertIn("ERROR: arrival must be an integer >= 0", completed.stderr)
+            log_text = log.read_text(encoding="utf-8")
+            self.assertIn("ERROR Analysis failed for dataset", log_text)
+            self.assertIn("ValueError: arrival must be an integer >= 0", log_text)
+            self.assertFalse((output / "results.json").exists())
+
+    def test_invalid_integrated_dataset(self):
+        path = DEFAULT_DATA.parent / "invalid.json"
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(run(path, tmp), 2)
+            self.assertFalse((Path(tmp) / "results.json").exists())
+
+    def test_malformed_json_returns_failure_status(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            bad_path = Path(tmp) / "malformed.json"
+            bad_path.write_text("{not valid json", encoding="utf-8")
+            self.assertEqual(run(bad_path, Path(tmp) / "outputs"), 2)
+            self.assertFalse((Path(tmp) / "outputs" / "results.json").exists())
+
+    def test_missing_dataset_keys_are_rejected_before_exports(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / "outputs"
+            incomplete = {"processes": [], "memory": {}, "deadlock": {}, "storage": {}}
+            self.assertRaises(ValueError, analyze, incomplete)
+            write_result = run
+            data_path = Path(tmp) / "missing.json"
+            data_path.write_text(json.dumps(incomplete), encoding="utf-8")
+            self.assertEqual(write_result(data_path, output), 2)
+            self.assertFalse((output / "results.json").exists())
+
 
 if __name__ == "__main__":
     unittest.main()
