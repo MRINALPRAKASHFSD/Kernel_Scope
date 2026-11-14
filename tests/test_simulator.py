@@ -189,6 +189,43 @@ class StorageTests(unittest.TestCase):
         with self.assertRaises(ValueError): disk_schedule([], 0, 0)
 
 
+class IntegrationTests(unittest.TestCase):
+    def test_all_modules_and_evidence(self):
+        data = json.loads(DEFAULT_DATA.read_text())
+        result = analyze(data)
+        self.assertEqual(set(result), {"scheduling", "memory", "deadlock", "storage"})
+        self.assertTrue(result["deadlock"]["safe"])
+        with tempfile.TemporaryDirectory() as tmp:
+            write_report(data, tmp)
+            for name in ("results.json", "scheduling.csv", "memory.csv", "storage.csv",
+                         "scheduling.svg", "memory.svg", "storage.svg"):
+                self.assertTrue((Path(tmp) / name).is_file(), name)
+                self.assertGreater((Path(tmp) / name).stat().st_size, 0)
+            exported = json.loads((Path(tmp) / "results.json").read_text(encoding="utf-8"))
+            self.assertEqual([x["average_waiting"] for x in exported["scheduling"]], [4.75, 4.0, 5.0])
+            self.assertEqual([x["average_turnaround"] for x in exported["scheduling"]], [8.75, 8.0, 9.0])
+            self.assertEqual([x["cpu_utilization_percent"] for x in exported["scheduling"]], [100.0, 100.0, 100.0])
+            self.assertEqual([x["throughput"] for x in exported["scheduling"]], [0.25, 0.25, 0.25])
+            self.assertEqual([x["faults"] for x in exported["memory"]], [10, 9, 7])
+            self.assertEqual([x["hits"] for x in exported["memory"]], [3, 4, 6])
+            self.assertEqual([x["fault_rate_percent"] for x in exported["memory"]], [76.923, 69.231, 53.846])
+            self.assertEqual(exported["deadlock"]["safe_sequence"], ["P1", "P3", "P0", "P2", "P4"])
+            self.assertEqual([x["total_head_movement"] for x in exported["storage"]], [640, 236, 331])
+            self.assertEqual([x["average_movement_per_request"] for x in exported["storage"]], [80.0, 29.5, 41.375])
+            with (Path(tmp) / "scheduling.csv").open(newline="", encoding="utf-8") as file:
+                cpu_rows = list(csv.DictReader(file))
+            with (Path(tmp) / "memory.csv").open(newline="", encoding="utf-8") as file:
+                memory_rows = list(csv.DictReader(file))
+            with (Path(tmp) / "storage.csv").open(newline="", encoding="utf-8") as file:
+                storage_rows = list(csv.DictReader(file))
+            self.assertEqual([row["average_waiting"] for row in cpu_rows], ["4.75", "4.0", "5.0"])
+            self.assertEqual([row["average_turnaround"] for row in cpu_rows], ["8.75", "8.0", "9.0"])
+            self.assertEqual([row["faults"] for row in memory_rows], ["10", "9", "7"])
+            self.assertEqual([row["hits"] for row in memory_rows], ["3", "4", "6"])
+            self.assertEqual([row["total_head_movement"] for row in storage_rows], ["640", "236", "331"])
+            self.assertEqual([row["average_movement_per_request"] for row in storage_rows], ["80.0", "29.5", "41.375"])
+            self.assertEqual(run(DEFAULT_DATA, tmp), 0)
+
 
 if __name__ == "__main__":
     unittest.main()
