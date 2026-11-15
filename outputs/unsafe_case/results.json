@@ -1,0 +1,231 @@
+{
+  "scheduling": [
+    {
+      "algorithm": "FCFS",
+      "quantum": null,
+      "metrics": [
+        {
+          "pid": "P1",
+          "completion": 4,
+          "turnaround": 1,
+          "waiting": 0
+        }
+      ],
+      "gantt": [
+        {
+          "pid": "P1",
+          "start": 3,
+          "end": 4
+        }
+      ],
+      "average_waiting": 0.0,
+      "average_turnaround": 1.0,
+      "cpu_utilization_percent": 100.0,
+      "throughput": 1.0
+    },
+    {
+      "algorithm": "SJF",
+      "quantum": null,
+      "metrics": [
+        {
+          "pid": "P1",
+          "completion": 4,
+          "turnaround": 1,
+          "waiting": 0
+        }
+      ],
+      "gantt": [
+        {
+          "pid": "P1",
+          "start": 3,
+          "end": 4
+        }
+      ],
+      "average_waiting": 0.0,
+      "average_turnaround": 1.0,
+      "cpu_utilization_percent": 100.0,
+      "throughput": 1.0
+    },
+    {
+      "algorithm": "RR",
+      "quantum": 1,
+      "metrics": [
+        {
+          "pid": "P1",
+          "completion": 4,
+          "turnaround": 1,
+          "waiting": 0
+        }
+      ],
+      "gantt": [
+        {
+          "pid": "P1",
+          "start": 3,
+          "end": 4
+        }
+      ],
+      "average_waiting": 0.0,
+      "average_turnaround": 1.0,
+      "cpu_utilization_percent": 100.0,
+      "throughput": 1.0
+    }
+  ],
+  "memory": [
+    {
+      "algorithm": "FIFO",
+      "frames": 1,
+      "references": 3,
+      "hits": 0,
+      "faults": 3,
+      "hit_rate_percent": 0.0,
+      "fault_rate_percent": 100.0,
+      "trace": [
+        {
+          "step": 1,
+          "page": 1,
+          "result": "FAULT",
+          "frames": [
+            1
+          ]
+        },
+        {
+          "step": 2,
+          "page": 2,
+          "result": "FAULT",
+          "frames": [
+            2
+          ]
+        },
+        {
+          "step": 3,
+          "page": 1,
+          "result": "FAULT",
+          "frames": [
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "algorithm": "LRU",
+      "frames": 1,
+      "references": 3,
+      "hits": 0,
+      "faults": 3,
+      "hit_rate_percent": 0.0,
+      "fault_rate_percent": 100.0,
+      "trace": [
+        {
+          "step": 1,
+          "page": 1,
+          "result": "FAULT",
+          "frames": [
+            1
+          ]
+        },
+        {
+          "step": 2,
+          "page": 2,
+          "result": "FAULT",
+          "frames": [
+            2
+          ]
+        },
+        {
+          "step": 3,
+          "page": 1,
+          "result": "FAULT",
+          "frames": [
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "algorithm": "OPT",
+      "frames": 1,
+      "references": 3,
+      "hits": 0,
+      "faults": 3,
+      "hit_rate_percent": 0.0,
+      "fault_rate_percent": 100.0,
+      "trace": [
+        {
+          "step": 1,
+          "page": 1,
+          "result": "FAULT",
+          "frames": [
+            1
+          ]
+        },
+        {
+          "step": 2,
+          "page": 2,
+          "result": "FAULT",
+          "frames": [
+            2
+          ]
+        },
+        {
+          "step": 3,
+          "page": 1,
+          "result": "FAULT",
+          "frames": [
+            1
+          ]
+        }
+      ]
+    }
+  ],
+  "deadlock": {
+    "safe": false,
+    "safe_sequence": null,
+    "completed_prefix": [],
+    "unfinished": [
+      "P0",
+      "P1"
+    ],
+    "need": [
+      [
+        1
+      ],
+      [
+        1
+      ]
+    ],
+    "trace": [],
+    "note": "Unsafe state is not proof of an existing deadlock."
+  },
+  "storage": [
+    {
+      "algorithm": "FCFS",
+      "direction": null,
+      "route": [
+        5
+      ],
+      "total_head_movement": 0,
+      "average_movement_per_request": 0,
+      "requests_served": 0
+    },
+    {
+      "algorithm": "SSTF",
+      "direction": null,
+      "route": [
+        5
+      ],
+      "total_head_movement": 0,
+      "average_movement_per_request": 0,
+      "requests_served": 0
+    },
+    {
+      "algorithm": "SCAN",
+      "direction": "down",
+      "route": [
+        5
+      ],
+      "total_head_movement": 0,
+      "average_movement_per_request": 0,
+      "requests_served": 0
+    }
+  ]
+}
