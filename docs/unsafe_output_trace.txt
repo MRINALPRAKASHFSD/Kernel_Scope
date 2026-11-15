@@ -1,0 +1,11 @@
+Analysis completed. Output folder: outputs/unsafe_case
+CPU FCFS: avg wait=0.0, avg turnaround=1.0
+CPU SJF: avg wait=0.0, avg turnaround=1.0
+CPU RR: avg wait=0.0, avg turnaround=1.0
+MEM FIFO: faults=3, hits=0
+MEM LRU: faults=3, hits=0
+MEM OPT: faults=3, hits=0
+BANKER: UNSAFE; sequence=None
+DISK FCFS: head movement=0
+DISK SSTF: head movement=0
+DISK SCAN: head movement=0

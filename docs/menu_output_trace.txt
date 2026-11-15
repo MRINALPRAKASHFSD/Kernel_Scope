@@ -1,0 +1,20 @@
+
+OS Resource Management Simulator
+ 1. CPU scheduling comparisons
+ 2. Page replacement comparisons
+ 3. Banker's safety check
+ 4. Disk scheduling comparisons
+ 5. Run all + export evidence
+ 6. Change dataset JSON path
+ 0. Exit
+Choose: Invalid choice; enter 0 through 6.
+
+OS Resource Management Simulator
+ 1. CPU scheduling comparisons
+ 2. Page replacement comparisons
+ 3. Banker's safety check
+ 4. Disk scheduling comparisons
+ 5. Run all + export evidence
+ 6. Change dataset JSON path
+ 0. Exit
+Choose: Goodbye

@@ -1,0 +1,4 @@
+algorithm,average_waiting,average_turnaround,cpu_utilization_percent,throughput
+FCFS,0.0,1.0,100.0,1.0
+SJF,0.0,1.0,100.0,1.0
+RR,0.0,1.0,100.0,1.0

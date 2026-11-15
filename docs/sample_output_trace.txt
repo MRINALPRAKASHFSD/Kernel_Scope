@@ -1,0 +1,11 @@
+Analysis completed. Output folder: outputs
+CPU FCFS: avg wait=4.75, avg turnaround=8.75
+CPU SJF: avg wait=4.0, avg turnaround=8.0
+CPU RR: avg wait=5.0, avg turnaround=9.0
+MEM FIFO: faults=10, hits=3
+MEM LRU: faults=9, hits=4
+MEM OPT: faults=7, hits=6
+BANKER: SAFE; sequence=['P1', 'P3', 'P0', 'P2', 'P4']
+DISK FCFS: head movement=640
+DISK SSTF: head movement=236
+DISK SCAN: head movement=331

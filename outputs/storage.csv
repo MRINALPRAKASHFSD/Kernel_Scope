@@ -1,0 +1,4 @@
+algorithm,total_head_movement,average_movement_per_request
+FCFS,640,80.0
+SSTF,236,29.5
+SCAN,331,41.375

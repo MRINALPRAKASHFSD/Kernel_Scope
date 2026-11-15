@@ -1,0 +1,50 @@
+OS Resource Lab baseline/unsafe/invalid CLI verification
+Date: 2026-11-24
+
+Command: ./run.sh --mode demo --dataset samples/baseline.json --output /var/folders/3p/ygy8kywn01q3cj7wf6jb6j0h0000gn/T/osrl-audit-pm920fh5/baseline
+Expected exit: 0
+Actual exit: 0
+STDOUT/STDERR:
+Analysis completed. Output folder: /var/folders/3p/ygy8kywn01q3cj7wf6jb6j0h0000gn/T/osrl-audit-pm920fh5/baseline
+CPU FCFS: avg wait=4.75, avg turnaround=8.75
+CPU SJF: avg wait=4.0, avg turnaround=8.0
+CPU RR: avg wait=5.0, avg turnaround=9.0
+MEM FIFO: faults=10, hits=3
+MEM LRU: faults=9, hits=4
+MEM OPT: faults=7, hits=6
+BANKER: SAFE; sequence=['P1', 'P3', 'P0', 'P2', 'P4']
+DISK FCFS: head movement=640
+DISK SSTF: head movement=236
+DISK SCAN: head movement=331
+
+Command: ./run.sh --mode demo --dataset samples/unsafe.json --output /var/folders/3p/ygy8kywn01q3cj7wf6jb6j0h0000gn/T/osrl-audit-pm920fh5/unsafe
+Expected exit: 0
+Actual exit: 0
+STDOUT/STDERR:
+Analysis completed. Output folder: /var/folders/3p/ygy8kywn01q3cj7wf6jb6j0h0000gn/T/osrl-audit-pm920fh5/unsafe
+CPU FCFS: avg wait=0.0, avg turnaround=1.0
+CPU SJF: avg wait=0.0, avg turnaround=1.0
+CPU RR: avg wait=0.0, avg turnaround=1.0
+MEM FIFO: faults=3, hits=0
+MEM LRU: faults=3, hits=0
+MEM OPT: faults=3, hits=0
+BANKER: UNSAFE; sequence=None
+DISK FCFS: head movement=0
+DISK SSTF: head movement=0
+DISK SCAN: head movement=0
+
+Command: ./run.sh --mode demo --dataset samples/invalid.json --output /var/folders/3p/ygy8kywn01q3cj7wf6jb6j0h0000gn/T/osrl-audit-pm920fh5/invalid
+Expected exit: 2
+Actual exit: 2
+STDOUT/STDERR:
+ERROR: arrival must be an integer >= 0
+
+Metric assertions:
+CPU average waiting FCFS/SJF/RR: 4.75 / 4.00 / 5.00
+Memory faults FIFO/LRU/OPT: 10 / 9 / 7
+Banker baseline: SAFE, sequence P1 -> P3 -> P0 -> P2 -> P4
+Disk movement FCFS/SSTF/SCAN: 640 / 236 / 331
+Unsafe dataset: Banker UNSAFE
+Invalid dataset: exit 2; no results.json
+CSV assertions: three algorithm rows per comparison file
+Result: PASS
