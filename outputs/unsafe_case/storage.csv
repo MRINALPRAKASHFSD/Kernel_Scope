@@ -1,0 +1,4 @@
+algorithm,total_head_movement,average_movement_per_request
+FCFS,0,0
+SSTF,0,0
+SCAN,0,0
