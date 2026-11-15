@@ -1,0 +1,4 @@
+algorithm,faults,hits,fault_rate_percent
+FIFO,10,3,76.923
+LRU,9,4,69.231
+OPT,7,6,53.846
