@@ -1,0 +1,2 @@
+ERROR: arrival must be an integer >= 0
+exit_code=2
