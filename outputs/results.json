@@ -1,0 +1,758 @@
+{
+  "scheduling": [
+    {
+      "algorithm": "FCFS",
+      "quantum": null,
+      "metrics": [
+        {
+          "pid": "P1",
+          "completion": 7,
+          "turnaround": 7,
+          "waiting": 0
+        },
+        {
+          "pid": "P2",
+          "completion": 11,
+          "turnaround": 9,
+          "waiting": 5
+        },
+        {
+          "pid": "P3",
+          "completion": 12,
+          "turnaround": 8,
+          "waiting": 7
+        },
+        {
+          "pid": "P4",
+          "completion": 16,
+          "turnaround": 11,
+          "waiting": 7
+        }
+      ],
+      "gantt": [
+        {
+          "pid": "P1",
+          "start": 0,
+          "end": 7
+        },
+        {
+          "pid": "P2",
+          "start": 7,
+          "end": 11
+        },
+        {
+          "pid": "P3",
+          "start": 11,
+          "end": 12
+        },
+        {
+          "pid": "P4",
+          "start": 12,
+          "end": 16
+        }
+      ],
+      "average_waiting": 4.75,
+      "average_turnaround": 8.75,
+      "cpu_utilization_percent": 100.0,
+      "throughput": 0.25
+    },
+    {
+      "algorithm": "SJF",
+      "quantum": null,
+      "metrics": [
+        {
+          "pid": "P1",
+          "completion": 7,
+          "turnaround": 7,
+          "waiting": 0
+        },
+        {
+          "pid": "P2",
+          "completion": 12,
+          "turnaround": 10,
+          "waiting": 6
+        },
+        {
+          "pid": "P3",
+          "completion": 8,
+          "turnaround": 4,
+          "waiting": 3
+        },
+        {
+          "pid": "P4",
+          "completion": 16,
+          "turnaround": 11,
+          "waiting": 7
+        }
+      ],
+      "gantt": [
+        {
+          "pid": "P1",
+          "start": 0,
+          "end": 7
+        },
+        {
+          "pid": "P3",
+          "start": 7,
+          "end": 8
+        },
+        {
+          "pid": "P2",
+          "start": 8,
+          "end": 12
+        },
+        {
+          "pid": "P4",
+          "start": 12,
+          "end": 16
+        }
+      ],
+      "average_waiting": 4.0,
+      "average_turnaround": 8.0,
+      "cpu_utilization_percent": 100.0,
+      "throughput": 0.25
+    },
+    {
+      "algorithm": "RR",
+      "quantum": 2,
+      "metrics": [
+        {
+          "pid": "P1",
+          "completion": 16,
+          "turnaround": 16,
+          "waiting": 9
+        },
+        {
+          "pid": "P2",
+          "completion": 9,
+          "turnaround": 7,
+          "waiting": 3
+        },
+        {
+          "pid": "P3",
+          "completion": 7,
+          "turnaround": 3,
+          "waiting": 2
+        },
+        {
+          "pid": "P4",
+          "completion": 15,
+          "turnaround": 10,
+          "waiting": 6
+        }
+      ],
+      "gantt": [
+        {
+          "pid": "P1",
+          "start": 0,
+          "end": 2
+        },
+        {
+          "pid": "P2",
+          "start": 2,
+          "end": 4
+        },
+        {
+          "pid": "P1",
+          "start": 4,
+          "end": 6
+        },
+        {
+          "pid": "P3",
+          "start": 6,
+          "end": 7
+        },
+        {
+          "pid": "P2",
+          "start": 7,
+          "end": 9
+        },
+        {
+          "pid": "P4",
+          "start": 9,
+          "end": 11
+        },
+        {
+          "pid": "P1",
+          "start": 11,
+          "end": 13
+        },
+        {
+          "pid": "P4",
+          "start": 13,
+          "end": 15
+        },
+        {
+          "pid": "P1",
+          "start": 15,
+          "end": 16
+        }
+      ],
+      "average_waiting": 5.0,
+      "average_turnaround": 9.0,
+      "cpu_utilization_percent": 100.0,
+      "throughput": 0.25
+    }
+  ],
+  "memory": [
+    {
+      "algorithm": "FIFO",
+      "frames": 3,
+      "references": 13,
+      "hits": 3,
+      "faults": 10,
+      "hit_rate_percent": 23.077,
+      "fault_rate_percent": 76.923,
+      "trace": [
+        {
+          "step": 1,
+          "page": 7,
+          "result": "FAULT",
+          "frames": [
+            7
+          ]
+        },
+        {
+          "step": 2,
+          "page": 0,
+          "result": "FAULT",
+          "frames": [
+            7,
+            0
+          ]
+        },
+        {
+          "step": 3,
+          "page": 1,
+          "result": "FAULT",
+          "frames": [
+            7,
+            0,
+            1
+          ]
+        },
+        {
+          "step": 4,
+          "page": 2,
+          "result": "FAULT",
+          "frames": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "step": 5,
+          "page": 0,
+          "result": "HIT",
+          "frames": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "step": 6,
+          "page": 3,
+          "result": "FAULT",
+          "frames": [
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "step": 7,
+          "page": 0,
+          "result": "FAULT",
+          "frames": [
+            2,
+            3,
+            0
+          ]
+        },
+        {
+          "step": 8,
+          "page": 4,
+          "result": "FAULT",
+          "frames": [
+            3,
+            0,
+            4
+          ]
+        },
+        {
+          "step": 9,
+          "page": 2,
+          "result": "FAULT",
+          "frames": [
+            0,
+            4,
+            2
+          ]
+        },
+        {
+          "step": 10,
+          "page": 3,
+          "result": "FAULT",
+          "frames": [
+            4,
+            2,
+            3
+          ]
+        },
+        {
+          "step": 11,
+          "page": 0,
+          "result": "FAULT",
+          "frames": [
+            2,
+            3,
+            0
+          ]
+        },
+        {
+          "step": 12,
+          "page": 3,
+          "result": "HIT",
+          "frames": [
+            2,
+            3,
+            0
+          ]
+        },
+        {
+          "step": 13,
+          "page": 2,
+          "result": "HIT",
+          "frames": [
+            2,
+            3,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "algorithm": "LRU",
+      "frames": 3,
+      "references": 13,
+      "hits": 4,
+      "faults": 9,
+      "hit_rate_percent": 30.769,
+      "fault_rate_percent": 69.231,
+      "trace": [
+        {
+          "step": 1,
+          "page": 7,
+          "result": "FAULT",
+          "frames": [
+            7
+          ]
+        },
+        {
+          "step": 2,
+          "page": 0,
+          "result": "FAULT",
+          "frames": [
+            7,
+            0
+          ]
+        },
+        {
+          "step": 3,
+          "page": 1,
+          "result": "FAULT",
+          "frames": [
+            7,
+            0,
+            1
+          ]
+        },
+        {
+          "step": 4,
+          "page": 2,
+          "result": "FAULT",
+          "frames": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "step": 5,
+          "page": 0,
+          "result": "HIT",
+          "frames": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "step": 6,
+          "page": 3,
+          "result": "FAULT",
+          "frames": [
+            0,
+            2,
+            3
+          ]
+        },
+        {
+          "step": 7,
+          "page": 0,
+          "result": "HIT",
+          "frames": [
+            0,
+            2,
+            3
+          ]
+        },
+        {
+          "step": 8,
+          "page": 4,
+          "result": "FAULT",
+          "frames": [
+            0,
+            3,
+            4
+          ]
+        },
+        {
+          "step": 9,
+          "page": 2,
+          "result": "FAULT",
+          "frames": [
+            0,
+            4,
+            2
+          ]
+        },
+        {
+          "step": 10,
+          "page": 3,
+          "result": "FAULT",
+          "frames": [
+            4,
+            2,
+            3
+          ]
+        },
+        {
+          "step": 11,
+          "page": 0,
+          "result": "FAULT",
+          "frames": [
+            2,
+            3,
+            0
+          ]
+        },
+        {
+          "step": 12,
+          "page": 3,
+          "result": "HIT",
+          "frames": [
+            2,
+            3,
+            0
+          ]
+        },
+        {
+          "step": 13,
+          "page": 2,
+          "result": "HIT",
+          "frames": [
+            2,
+            3,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "algorithm": "OPT",
+      "frames": 3,
+      "references": 13,
+      "hits": 6,
+      "faults": 7,
+      "hit_rate_percent": 46.154,
+      "fault_rate_percent": 53.846,
+      "trace": [
+        {
+          "step": 1,
+          "page": 7,
+          "result": "FAULT",
+          "frames": [
+            7
+          ]
+        },
+        {
+          "step": 2,
+          "page": 0,
+          "result": "FAULT",
+          "frames": [
+            7,
+            0
+          ]
+        },
+        {
+          "step": 3,
+          "page": 1,
+          "result": "FAULT",
+          "frames": [
+            7,
+            0,
+            1
+          ]
+        },
+        {
+          "step": 4,
+          "page": 2,
+          "result": "FAULT",
+          "frames": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "step": 5,
+          "page": 0,
+          "result": "HIT",
+          "frames": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "step": 6,
+          "page": 3,
+          "result": "FAULT",
+          "frames": [
+            0,
+            2,
+            3
+          ]
+        },
+        {
+          "step": 7,
+          "page": 0,
+          "result": "HIT",
+          "frames": [
+            0,
+            2,
+            3
+          ]
+        },
+        {
+          "step": 8,
+          "page": 4,
+          "result": "FAULT",
+          "frames": [
+            2,
+            3,
+            4
+          ]
+        },
+        {
+          "step": 9,
+          "page": 2,
+          "result": "HIT",
+          "frames": [
+            2,
+            3,
+            4
+          ]
+        },
+        {
+          "step": 10,
+          "page": 3,
+          "result": "HIT",
+          "frames": [
+            2,
+            3,
+            4
+          ]
+        },
+        {
+          "step": 11,
+          "page": 0,
+          "result": "FAULT",
+          "frames": [
+            2,
+            3,
+            0
+          ]
+        },
+        {
+          "step": 12,
+          "page": 3,
+          "result": "HIT",
+          "frames": [
+            2,
+            3,
+            0
+          ]
+        },
+        {
+          "step": 13,
+          "page": 2,
+          "result": "HIT",
+          "frames": [
+            2,
+            3,
+            0
+          ]
+        }
+      ]
+    }
+  ],
+  "deadlock": {
+    "safe": true,
+    "safe_sequence": [
+      "P1",
+      "P3",
+      "P0",
+      "P2",
+      "P4"
+    ],
+    "completed_prefix": [
+      "P1",
+      "P3",
+      "P0",
+      "P2",
+      "P4"
+    ],
+    "unfinished": [],
+    "need": [
+      [
+        7,
+        4,
+        3
+      ],
+      [
+        1,
+        2,
+        2
+      ],
+      [
+        6,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        1
+      ],
+      [
+        4,
+        3,
+        1
+      ]
+    ],
+    "trace": [
+      {
+        "completed": "P1",
+        "available_after": [
+          5,
+          3,
+          2
+        ]
+      },
+      {
+        "completed": "P3",
+        "available_after": [
+          7,
+          4,
+          3
+        ]
+      },
+      {
+        "completed": "P0",
+        "available_after": [
+          7,
+          5,
+          3
+        ]
+      },
+      {
+        "completed": "P2",
+        "available_after": [
+          10,
+          5,
+          5
+        ]
+      },
+      {
+        "completed": "P4",
+        "available_after": [
+          10,
+          5,
+          7
+        ]
+      }
+    ],
+    "note": "Unsafe state is not proof of an existing deadlock."
+  },
+  "storage": [
+    {
+      "algorithm": "FCFS",
+      "direction": null,
+      "route": [
+        53,
+        98,
+        183,
+        37,
+        122,
+        14,
+        124,
+        65,
+        67
+      ],
+      "total_head_movement": 640,
+      "average_movement_per_request": 80.0,
+      "requests_served": 8
+    },
+    {
+      "algorithm": "SSTF",
+      "direction": null,
+      "route": [
+        53,
+        65,
+        67,
+        37,
+        14,
+        98,
+        122,
+        124,
+        183
+      ],
+      "total_head_movement": 236,
+      "average_movement_per_request": 29.5,
+      "requests_served": 8
+    },
+    {
+      "algorithm": "SCAN",
+      "direction": "up",
+      "route": [
+        53,
+        65,
+        67,
+        98,
+        122,
+        124,
+        183,
+        199,
+        37,
+        14
+      ],
+      "total_head_movement": 331,
+      "average_movement_per_request": 41.375,
+      "requests_served": 8
+    }
+  ]
+}
