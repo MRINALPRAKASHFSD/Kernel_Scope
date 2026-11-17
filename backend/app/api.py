@@ -205,3 +205,31 @@ def export_dataset(dataset_id: int, db: Session = Depends(get_db)):
     return Response(body, media_type="application/json", headers={"Content-Disposition": f'attachment; filename="dataset-{row.id}.json"'})
 
 
+@router.get("/analytics/overview")
+def analytics_overview(db: Session = Depends(get_db)):
+    return dashboard_summary(db)
+
+
+@router.get("/analytics/comparisons")
+def analytics_comparisons(db: Session = Depends(get_db)):
+    return {"groups": compatible_comparisons(db)}
+
+
+@router.get("/reports/{run_id}")
+def get_report(run_id: int, db: Session = Depends(get_db)):
+    row = RunRepository(db).get(run_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Simulation run not found")
+    return run_out(row)
+
+
+@router.get("/reports/{run_id}/export")
+def export_report(run_id: int, format: str = Query(default="json", pattern="^(json|csv)$"), db: Session = Depends(get_db)):
+    row = RunRepository(db).get(run_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Simulation run not found")
+    if row.status != "completed":
+        raise HTTPException(status_code=409, detail="Only completed runs can be exported")
+    if format == "json":
+        return JSONResponse(run_out(row), headers={"Content-Disposition": f'attachment; filename="simulation-{run_id}.json"'})
+    return Response(csv_for_run(row), media_type="text/csv", headers={"Content-Disposition": f'attachment; filename="simulation-{run_id}.csv"'})
