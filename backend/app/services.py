@@ -95,3 +95,70 @@ def execute_run(db: Session, category: str, selected: str, snapshot: dict, compu
 
 def run_cpu(db: Session, request: CpuSimulationRequest):
     snapshot = request.model_dump(exclude={"dataset_id"})
+    selected = ", ".join(request.algorithms)
+    return execute_run(db, "cpu", selected, snapshot,
+                       lambda: {"category": "cpu", "algorithms": [schedule(snapshot["processes"], a, snapshot["quantum"]) for a in snapshot["algorithms"]]},
+                       request.dataset_id)
+
+
+def run_memory(db: Session, request: MemorySimulationRequest):
+    snapshot = request.model_dump(exclude={"dataset_id"})
+    selected = ", ".join(request.algorithms)
+    return execute_run(db, "memory", selected, snapshot,
+                       lambda: {"category": "memory", "algorithms": [simulate_memory(snapshot["references"], snapshot["frames"], a) for a in snapshot["algorithms"]]},
+                       request.dataset_id)
+
+
+def run_deadlock(db: Session, request: DeadlockSimulationRequest):
+    snapshot = request.model_dump(exclude={"dataset_id"})
+    return execute_run(db, "deadlock", "BANKER", snapshot,
+                       lambda: {"category": "deadlock", **banker(snapshot["available"], snapshot["maximum"], snapshot["allocation"])},
+                       request.dataset_id)
+
+
+def run_disk(db: Session, request: DiskSimulationRequest):
+    snapshot = request.model_dump(exclude={"dataset_id"})
+    selected = ", ".join(request.algorithms)
+    return execute_run(db, "storage", selected, snapshot,
+                       lambda: {"category": "storage", "algorithms": [disk_schedule(snapshot["requests"], snapshot["head"], snapshot["cylinders"], a, snapshot["direction"]) for a in snapshot["algorithms"]]},
+                       request.dataset_id)
+
+
+def run_integrated(db: Session, dataset: dict, dataset_id: int | None = None):
+    snapshot = {"dataset": dataset}
+    return execute_run(db, "integrated", "all algorithms", snapshot,
+                       lambda: analyze(dataset), dataset_id)
+
+
+def validate_dataset(category: str, config: dict):
+    if not isinstance(config, dict):
+        raise ValueError("dataset config must be a JSON object")
+    if category == "integrated":
+        analyze(config)
+    elif category == "cpu":
+        for algorithm in ("FCFS", "SJF", "RR"):
+            schedule(config.get("processes"), algorithm, config.get("quantum", 2))
+    elif category == "memory":
+        for algorithm in ("FIFO", "LRU", "OPT"):
+            simulate_memory(config.get("references"), config.get("frames"), algorithm)
+    elif category == "deadlock":
+        banker(config.get("available"), config.get("maximum"), config.get("allocation"))
+    elif category == "storage":
+        disk_schedule(config.get("requests"), config.get("head"), config.get("cylinders"), "SCAN", config.get("direction", "up"))
+    else:
+        raise ValueError("unsupported dataset category")
+    return config
+
+
+def create_dataset(db: Session, values: dict):
+    validate_dataset(values["category"], values["config"])
+    row = DatasetRepository(db).create(name=values["name"], description=values.get("description", ""),
+                                       category=values["category"], config_json=values["config"])
+    log_activity(db, "dataset.created", values["category"], "completed", f"Created dataset {row.name}")
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+def dashboard_summary(db: Session):
+    total_runs = db.scalar(select(func.count()).select_from(SimulationRun)) or 0
