@@ -162,3 +162,60 @@ def create_dataset(db: Session, values: dict):
 
 def dashboard_summary(db: Session):
     total_runs = db.scalar(select(func.count()).select_from(SimulationRun)) or 0
+    saved_datasets = db.scalar(select(func.count()).select_from(Dataset)) or 0
+    failed_runs = db.scalar(select(func.count()).select_from(SimulationRun).where(SimulationRun.status == "failed")) or 0
+    recent = list(db.scalars(select(ActivityLog).order_by(desc(ActivityLog.timestamp)).limit(8)))
+    recent_runs = RunRepository(db).list(5)
+    return {
+        "total_runs": total_runs,
+        "algorithm_count": len(ALGORITHMS),
+        "saved_datasets": saved_datasets,
+        "failed_runs": failed_runs,
+        "recent_runs": [run_out(row) for row in recent_runs],
+        "recent_activity": [{"id": row.id, "action": row.action, "category": row.category,
+                             "status": row.status, "message": row.message, "timestamp": iso(row.timestamp)} for row in recent],
+    }
+
+
+def compatible_comparisons(db: Session):
+    rows = list(db.scalars(select(SimulationRun).where(SimulationRun.status == "completed").order_by(desc(SimulationRun.created_at)).limit(200)))
+    groups: dict[tuple[str, str], list[dict]] = {}
+    for row in rows:
+        fingerprint = hashlib.sha256(json.dumps(row.input_snapshot, sort_keys=True, separators=(",", ":")).encode()).hexdigest()[:12]
+        groups.setdefault((row.category, fingerprint), []).append(run_out(row))
+    return [{"category": category, "input_fingerprint": fingerprint, "runs": runs}
+            for (category, fingerprint), runs in groups.items() if len(runs) > 1]
+
+
+def csv_for_run(row: SimulationRun) -> str:
+    result = row.result_json or {}
+    rows: list[dict] = []
+    for key in ("scheduling", "memory", "storage"):
+        values = result.get(key)
+        if values is None and result.get("category") == ("cpu" if key == "scheduling" else "memory" if key == "memory" else "storage"):
+            values = result.get("algorithms", [])
+        if isinstance(values, list):
+            for item in values:
+                flat = {"category": key, "algorithm": item.get("algorithm")}
+                flat.update({k: v for k, v in item.items() if isinstance(v, (str, int, float, bool)) and k != "algorithm"})
+                rows.append(flat)
+    dead = result.get("deadlock") if isinstance(result.get("deadlock"), dict) else result if result.get("category") == "deadlock" else None
+    if dead:
+        rows.append({"category": "deadlock", "safe": dead.get("safe"),
+                     "safe_sequence": " → ".join(dead.get("safe_sequence") or []),
+                     "unfinished": ", ".join(dead.get("unfinished") or [])})
+    if not rows:
+        return "category,algorithm\n"
+    columns = list(dict.fromkeys(key for item in rows for key in item))
+    buffer = io.StringIO()
+    writer = csv.DictWriter(buffer, fieldnames=columns, extrasaction="ignore")
+    writer.writeheader()
+    writer.writerows(rows)
+    return buffer.getvalue()
+
+
+def bundled_datasets():
+    return {
+        "baseline": json.loads((PROJECT_ROOT / "samples" / "baseline.json").read_text(encoding="utf-8")),
+        "unsafe": json.loads((PROJECT_ROOT / "samples" / "unsafe.json").read_text(encoding="utf-8")),
+    }
