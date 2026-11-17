@@ -120,3 +120,88 @@ def delete_simulation(run_id: int, db: Session = Depends(get_db)):
 
 @router.get("/datasets")
 def list_datasets(db: Session = Depends(get_db)):
+    return {"items": [dataset_out(row) for row in DatasetRepository(db).list()]}
+
+
+@router.post("/datasets", status_code=201)
+def add_dataset(payload: DatasetWrite, db: Session = Depends(get_db)):
+    try:
+        return dataset_out(create_dataset(db, payload.model_dump()))
+    except ValueError as exc:
+        db.rollback()
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Dataset could not be saved") from exc
+
+
+@router.post("/datasets/import", status_code=201)
+def import_dataset(payload: DatasetWrite, db: Session = Depends(get_db)):
+    return add_dataset(payload, db)
+
+
+@router.get("/datasets/{dataset_id}")
+def get_dataset(dataset_id: int, db: Session = Depends(get_db)):
+    row = DatasetRepository(db).get(dataset_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+    return dataset_out(row)
+
+
+@router.put("/datasets/{dataset_id}")
+def update_dataset(dataset_id: int, payload: DatasetWrite, db: Session = Depends(get_db)):
+    row = DatasetRepository(db).get(dataset_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+    try:
+        validate_dataset(payload.category, payload.config)
+        row.name = payload.name
+        row.description = payload.description
+        row.category = payload.category
+        row.config_json = payload.config
+        log_activity(db, "dataset.updated", row.category, "completed", f"Updated dataset {row.name}")
+        db.commit()
+        db.refresh(row)
+        return dataset_out(row)
+    except ValueError as exc:
+        db.rollback()
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.delete("/datasets/{dataset_id}")
+def delete_dataset(dataset_id: int, db: Session = Depends(get_db)):
+    row = DatasetRepository(db).get(dataset_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+    db.query(SimulationRun).filter(SimulationRun.dataset_id == dataset_id).update({SimulationRun.dataset_id: None})
+    name, category = row.name, row.category
+    db.delete(row)
+    db.commit()
+    log_activity(db, "dataset.deleted", category, "completed", f"Deleted dataset {name}")
+    db.commit()
+    return {"deleted": dataset_id}
+
+
+@router.post("/datasets/{dataset_id}/duplicate", status_code=201)
+def duplicate_dataset(dataset_id: int, db: Session = Depends(get_db)):
+    row = DatasetRepository(db).get(dataset_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+    try:
+        copy = create_dataset(db, {"name": f"{row.name} copy", "description": row.description,
+                                   "category": row.category, "config": row.config_json})
+        return dataset_out(copy)
+    except ValueError as exc:
+        db.rollback()
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.get("/datasets/{dataset_id}/export")
+def export_dataset(dataset_id: int, db: Session = Depends(get_db)):
+    row = DatasetRepository(db).get(dataset_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+    body = json.dumps({"name": row.name, "description": row.description, "category": row.category, "config": row.config_json}, indent=2)
+    return Response(body, media_type="application/json", headers={"Content-Disposition": f'attachment; filename="dataset-{row.id}.json"'})
+
+
