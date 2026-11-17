@@ -69,3 +69,59 @@ class DeadlockSimulationRequest(StrictModel):
                 raise ValueError("declared totals must match the resource count")
             calculated = [self.available[j] + sum(row[j] for row in self.allocation) for j in range(resources)]
             if calculated != self.declared_totals:
+                raise ValueError("declared totals must equal available plus allocated resources")
+        return self
+
+
+class DiskSimulationRequest(StrictModel):
+    requests: list[NonNegativeInt]
+    head: NonNegativeInt
+    cylinders: PositiveInt
+    direction: Literal["up", "down"] = "up"
+    algorithms: list[Literal["FCFS", "SSTF", "SCAN"]] = Field(default_factory=lambda: ["FCFS", "SSTF", "SCAN"], min_length=1)
+    dataset_id: int | None = None
+
+    @model_validator(mode="after")
+    def validate_positions(self):
+        if self.head >= self.cylinders:
+            raise ValueError("head must be below cylinders")
+        if any(address >= self.cylinders for address in self.requests):
+            raise ValueError("all requests must be below cylinders")
+        if len(self.algorithms) != len(set(self.algorithms)):
+            raise ValueError("algorithm selections must be unique")
+        return self
+
+
+class IntegratedSimulationRequest(StrictModel):
+    dataset: dict
+    dataset_id: int | None = None
+
+
+class DatasetWrite(StrictModel):
+    name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)]
+    description: str = ""
+    category: Literal["integrated", "cpu", "memory", "deadlock", "storage"]
+    config: dict
+
+
+class DatasetOut(BaseModel):
+    id: int
+    name: str
+    description: str
+    category: str
+    config: dict
+    created_at: str
+    updated_at: str
+
+
+class SimulationOut(BaseModel):
+    id: int
+    dataset_id: int | None
+    category: str
+    selected_algorithm: str
+    input_snapshot: dict
+    result: dict | None
+    status: str
+    error_message: str | None
+    created_at: str
+    completed_at: str | None
