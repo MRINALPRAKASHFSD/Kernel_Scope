@@ -45,3 +45,35 @@ def create_app(session_factory=SessionLocal, db_engine=engine, initialize=True):
     def record_rejected_request(request: Request, action: str, message: str):
         path = request.url.path
         category = next((item for item in ("cpu", "memory", "deadlock", "disk", "integrated") if f"/simulations/{item}" in path), "dataset" if "/datasets" in path else "api")
+        session = session_factory()
+        try:
+            log_activity(session, action, category, "invalid", message[:500])
+            session.commit()
+        except Exception:
+            session.rollback()
+            logger.exception("Could not persist rejected-request activity")
+        finally:
+            session.close()
+
+    @app.exception_handler(RequestValidationError)
+    async def invalid_request(request: Request, exc: RequestValidationError):
+        errors = exc.errors()
+        message = "; ".join(f"{'.'.join(map(str, item.get('loc', ())))}: {item.get('msg', 'invalid input')}" for item in errors)
+        record_rejected_request(request, "request.invalid", message or "Request validation failed")
+        return JSONResponse(status_code=422, content=jsonable_encoder({"detail": errors}))
+
+    @app.exception_handler(HTTPException)
+    async def api_http_error(request: Request, exc: HTTPException):
+        if exc.status_code in (404, 409, 422):
+            record_rejected_request(request, "request.rejected", str(exc.detail))
+        return JSONResponse(status_code=exc.status_code, content=jsonable_encoder({"detail": exc.detail}), headers=exc.headers)
+
+    @app.exception_handler(Exception)
+    async def safe_server_error(_request: Request, exc: Exception):
+        logger.exception("Unhandled API error")
+        return JSONResponse(status_code=500, content={"detail": "An internal server error occurred"})
+
+    return app
+
+
+app = create_app()
