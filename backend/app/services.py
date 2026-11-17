@@ -1,0 +1,221 @@
+"""Application services call the existing os_sim implementation directly."""
+import csv
+import hashlib
+import io
+import json
+import logging
+from datetime import datetime, timezone
+from pathlib import Path
+
+from sqlalchemy import desc, func, select
+from sqlalchemy.orm import Session
+
+from os_sim.deadlock import banker
+from os_sim.memory import simulate as simulate_memory
+from os_sim.reporting import analyze
+from os_sim.scheduling import schedule
+from os_sim.storage import disk_schedule
+
+from .config import PROJECT_ROOT
+from .models import ActivityLog, Dataset, SimulationRun
+from .repositories import ActivityRepository, DatasetRepository, RunRepository
+from .schemas import CpuSimulationRequest, DeadlockSimulationRequest, DiskSimulationRequest, MemorySimulationRequest
+
+logger = logging.getLogger("os_resource_lab")
+
+ALGORITHMS = [
+    {"category": "cpu", "name": "FCFS", "label": "First-Come, First-Served"},
+    {"category": "cpu", "name": "SJF", "label": "Non-preemptive Shortest Job First"},
+    {"category": "cpu", "name": "RR", "label": "Round Robin"},
+    {"category": "memory", "name": "FIFO", "label": "First-In, First-Out"},
+    {"category": "memory", "name": "LRU", "label": "Least Recently Used"},
+    {"category": "memory", "name": "OPT", "label": "Optimal (future-aware benchmark)"},
+    {"category": "deadlock", "name": "BANKER", "label": "Banker's Safety Algorithm"},
+    {"category": "storage", "name": "FCFS", "label": "First-Come, First-Served"},
+    {"category": "storage", "name": "SSTF", "label": "Shortest Seek Time First"},
+    {"category": "storage", "name": "SCAN", "label": "Full-sweep SCAN"},
+]
+
+
+class SimulationError(Exception):
+    """A computation failed after the run record had been created."""
+
+
+def iso(value):
+    return value.isoformat() if value else None
+
+
+def dataset_out(row: Dataset) -> dict:
+    return {"id": row.id, "name": row.name, "description": row.description,
+            "category": row.category, "config": row.config_json,
+            "created_at": iso(row.created_at), "updated_at": iso(row.updated_at)}
+
+
+def run_out(row: SimulationRun) -> dict:
+    return {"id": row.id, "dataset_id": row.dataset_id, "category": row.category,
+            "selected_algorithm": row.selected_algorithm, "input_snapshot": row.input_snapshot,
+            "result": row.result_json, "status": row.status, "error_message": row.error_message,
+            "created_at": iso(row.created_at), "completed_at": iso(row.completed_at)}
+
+
+def log_activity(db: Session, action: str, category: str, status: str, message: str, simulation_id=None):
+    ActivityRepository(db).record(action, category, status, message, simulation_id)
+
+
+def execute_run(db: Session, category: str, selected: str, snapshot: dict, compute, dataset_id: int | None = None):
+    row = SimulationRun(category=category, selected_algorithm=selected, input_snapshot=snapshot,
+                        dataset_id=dataset_id, status="running")
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    log_activity(db, "simulation.started", category, "running", f"Started {selected} simulation", row.id)
+    db.commit()
+    try:
+        result = compute()
+        row.status = "completed"
+        row.result_json = result
+        row.completed_at = datetime.now(timezone.utc)
+        row.error_message = None
+        log_activity(db, "simulation.completed", category, "completed", f"Completed {selected} simulation", row.id)
+        db.commit()
+        db.refresh(row)
+        return run_out(row)
+    except Exception as exc:
+        logger.exception("Simulation %s failed", row.id)
+        db.rollback()
+        row = db.get(SimulationRun, row.id)
+        if row is not None:
+            row.status = "failed"
+            row.error_message = str(exc)
+            row.completed_at = datetime.now(timezone.utc)
+            log_activity(db, "simulation.failed", category, "failed", str(exc), row.id)
+            db.commit()
+        raise SimulationError(str(exc)) from exc
+
+
+def run_cpu(db: Session, request: CpuSimulationRequest):
+    snapshot = request.model_dump(exclude={"dataset_id"})
+    selected = ", ".join(request.algorithms)
+    return execute_run(db, "cpu", selected, snapshot,
+                       lambda: {"category": "cpu", "algorithms": [schedule(snapshot["processes"], a, snapshot["quantum"]) for a in snapshot["algorithms"]]},
+                       request.dataset_id)
+
+
+def run_memory(db: Session, request: MemorySimulationRequest):
+    snapshot = request.model_dump(exclude={"dataset_id"})
+    selected = ", ".join(request.algorithms)
+    return execute_run(db, "memory", selected, snapshot,
+                       lambda: {"category": "memory", "algorithms": [simulate_memory(snapshot["references"], snapshot["frames"], a) for a in snapshot["algorithms"]]},
+                       request.dataset_id)
+
+
+def run_deadlock(db: Session, request: DeadlockSimulationRequest):
+    snapshot = request.model_dump(exclude={"dataset_id"})
+    return execute_run(db, "deadlock", "BANKER", snapshot,
+                       lambda: {"category": "deadlock", **banker(snapshot["available"], snapshot["maximum"], snapshot["allocation"])},
+                       request.dataset_id)
+
+
+def run_disk(db: Session, request: DiskSimulationRequest):
+    snapshot = request.model_dump(exclude={"dataset_id"})
+    selected = ", ".join(request.algorithms)
+    return execute_run(db, "storage", selected, snapshot,
+                       lambda: {"category": "storage", "algorithms": [disk_schedule(snapshot["requests"], snapshot["head"], snapshot["cylinders"], a, snapshot["direction"]) for a in snapshot["algorithms"]]},
+                       request.dataset_id)
+
+
+def run_integrated(db: Session, dataset: dict, dataset_id: int | None = None):
+    snapshot = {"dataset": dataset}
+    return execute_run(db, "integrated", "all algorithms", snapshot,
+                       lambda: analyze(dataset), dataset_id)
+
+
+def validate_dataset(category: str, config: dict):
+    if not isinstance(config, dict):
+        raise ValueError("dataset config must be a JSON object")
+    if category == "integrated":
+        analyze(config)
+    elif category == "cpu":
+        for algorithm in ("FCFS", "SJF", "RR"):
+            schedule(config.get("processes"), algorithm, config.get("quantum", 2))
+    elif category == "memory":
+        for algorithm in ("FIFO", "LRU", "OPT"):
+            simulate_memory(config.get("references"), config.get("frames"), algorithm)
+    elif category == "deadlock":
+        banker(config.get("available"), config.get("maximum"), config.get("allocation"))
+    elif category == "storage":
+        disk_schedule(config.get("requests"), config.get("head"), config.get("cylinders"), "SCAN", config.get("direction", "up"))
+    else:
+        raise ValueError("unsupported dataset category")
+    return config
+
+
+def create_dataset(db: Session, values: dict):
+    validate_dataset(values["category"], values["config"])
+    row = DatasetRepository(db).create(name=values["name"], description=values.get("description", ""),
+                                       category=values["category"], config_json=values["config"])
+    log_activity(db, "dataset.created", values["category"], "completed", f"Created dataset {row.name}")
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+def dashboard_summary(db: Session):
+    total_runs = db.scalar(select(func.count()).select_from(SimulationRun)) or 0
+    saved_datasets = db.scalar(select(func.count()).select_from(Dataset)) or 0
+    failed_runs = db.scalar(select(func.count()).select_from(SimulationRun).where(SimulationRun.status == "failed")) or 0
+    recent = list(db.scalars(select(ActivityLog).order_by(desc(ActivityLog.timestamp)).limit(8)))
+    recent_runs = RunRepository(db).list(5)
+    return {
+        "total_runs": total_runs,
+        "algorithm_count": len(ALGORITHMS),
+        "saved_datasets": saved_datasets,
+        "failed_runs": failed_runs,
+        "recent_runs": [run_out(row) for row in recent_runs],
+        "recent_activity": [{"id": row.id, "action": row.action, "category": row.category,
+                             "status": row.status, "message": row.message, "timestamp": iso(row.timestamp)} for row in recent],
+    }
+
+
+def compatible_comparisons(db: Session):
+    rows = list(db.scalars(select(SimulationRun).where(SimulationRun.status == "completed").order_by(desc(SimulationRun.created_at)).limit(200)))
+    groups: dict[tuple[str, str], list[dict]] = {}
+    for row in rows:
+        fingerprint = hashlib.sha256(json.dumps(row.input_snapshot, sort_keys=True, separators=(",", ":")).encode()).hexdigest()[:12]
+        groups.setdefault((row.category, fingerprint), []).append(run_out(row))
+    return [{"category": category, "input_fingerprint": fingerprint, "runs": runs}
+            for (category, fingerprint), runs in groups.items() if len(runs) > 1]
+
+
+def csv_for_run(row: SimulationRun) -> str:
+    result = row.result_json or {}
+    rows: list[dict] = []
+    for key in ("scheduling", "memory", "storage"):
+        values = result.get(key)
+        if values is None and result.get("category") == ("cpu" if key == "scheduling" else "memory" if key == "memory" else "storage"):
+            values = result.get("algorithms", [])
+        if isinstance(values, list):
+            for item in values:
+                flat = {"category": key, "algorithm": item.get("algorithm")}
+                flat.update({k: v for k, v in item.items() if isinstance(v, (str, int, float, bool)) and k != "algorithm"})
+                rows.append(flat)
+    dead = result.get("deadlock") if isinstance(result.get("deadlock"), dict) else result if result.get("category") == "deadlock" else None
+    if dead:
+        rows.append({"category": "deadlock", "safe": dead.get("safe"),
+                     "safe_sequence": " → ".join(dead.get("safe_sequence") or []),
+                     "unfinished": ", ".join(dead.get("unfinished") or [])})
+    if not rows:
+        return "category,algorithm\n"
+    columns = list(dict.fromkeys(key for item in rows for key in item))
+    buffer = io.StringIO()
+    writer = csv.DictWriter(buffer, fieldnames=columns, extrasaction="ignore")
+    writer.writeheader()
+    writer.writerows(rows)
+    return buffer.getvalue()
+
+
+def bundled_datasets():
+    return {
+        "baseline": json.loads((PROJECT_ROOT / "samples" / "baseline.json").read_text(encoding="utf-8")),
+        "unsafe": json.loads((PROJECT_ROOT / "samples" / "unsafe.json").read_text(encoding="utf-8")),
+    }
