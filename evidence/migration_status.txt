@@ -1,0 +1,13 @@
+OS Resource Lab Alembic migration verification
+Date: 2026-11-24 11:59:10 IST
+
+$ PYTHONPATH=. backend/.venv/bin/alembic -c backend/alembic.ini upgrade head
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+exit status: 0
+
+$ PYTHONPATH=. backend/.venv/bin/alembic -c backend/alembic.ini current
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+0001_initial (head)
+exit status: 0

@@ -1,0 +1,18 @@
+OS Resource Lab — application/API browser verification
+Date: 2026-11-24
+
+Status: PASS — see `docs/web_test_results.txt` for the complete current verification record.
+
+Playwright started this project's FastAPI service on 127.0.0.1:18100 and Vite on 127.0.0.1:15174. It configured an isolated temporary SQLite database and seeded the bundled dataset. The tests used actual HTTP API responses to verify:
+
+- Dashboard workspace counts, including one persisted integrated run, two datasets, ten algorithms, and zero failed runs in the isolated fixture database.
+- CPU comparison response and rendered FCFS Gantt order/timing, including generated idle spans.
+- FIFO memory trace with HIT/FAULT classifications, resident-page-order label, and actual evicted/loaded page details.
+- Banker's safe sample and unsafe sample with their real returned results.
+- SCAN route with a request at physical endpoint 199 in the upward direction and a request at physical endpoint 0 in the downward direction.
+- Analytics and Reports reading the same persisted integrated simulation.
+- Application navigation, theme switching, responsive controls, and page-level overflow checks.
+
+The suite also checks page errors and error-level browser console messages; none were observed. Nine Playwright browser tests passed, producing 13 authentic application screenshots in `evidence/browser/`. The tests use a disposable database and do not add runs to the user's saved simulation history.
+
+This file documents test scope and observed results; the executable checks are in `frontend/e2e/acceptance.pw.ts` and `frontend/playwright.config.ts`.
