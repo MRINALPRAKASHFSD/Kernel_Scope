@@ -50,3 +50,63 @@ def test_full_sweep_scan_uses_existing_python_engine(client):
 
 
 def test_dataset_crud_seed_and_restart_persistence(client):
+    seeded = client.get("/api/datasets").json()["items"]
+    assert {item["name"] for item in seeded} == {"Bundled Baseline", "Bundled Unsafe"}
+    saved = client.post("/api/datasets", json={
+        "name": "My CPU case", "description": "editor test", "category": "cpu",
+        "config": {"processes": [{"pid": "A", "arrival": 0, "burst": 2}], "quantum": 1},
+    })
+    assert saved.status_code == 201
+    dataset_id = saved.json()["id"]
+    assert client.get(f"/api/datasets/{dataset_id}/export").json()["config"]["processes"][0]["pid"] == "A"
+    update = client.put(f"/api/datasets/{dataset_id}", json={
+        "name": "My CPU case v2", "description": "updated", "category": "cpu",
+        "config": {"processes": [{"pid": "A", "arrival": 0, "burst": 3}], "quantum": 1},
+    })
+    assert update.status_code == 200
+    assert client.get(f"/api/datasets/{dataset_id}").json()["name"] == "My CPU case v2"
+    app_after_restart = create_app(client.app.state.session_factory, client.app.state.database_engine, initialize=True)
+    with TestClient(app_after_restart) as restarted:
+        persisted = restarted.get(f"/api/datasets/{dataset_id}")
+        assert persisted.status_code == 200
+        assert persisted.json()["config"]["processes"][0]["burst"] == 3
+
+
+def test_integrated_results_and_exports_are_persisted(client):
+    baseline = next(item for item in client.get("/api/datasets").json()["items"] if item["name"] == "Bundled Baseline")
+    run = client.post("/api/simulations/integrated", json={"dataset_id": baseline["id"], "dataset": baseline["config"]})
+    assert run.status_code == 200
+    record = run.json()
+    assert record["result"]["storage"][2]["total_head_movement"] == 331
+    json_export = client.get(f"/api/reports/{record['id']}/export?format=json")
+    csv_export = client.get(f"/api/reports/{record['id']}/export?format=csv")
+    assert json_export.status_code == 200 and json_export.json()["id"] == record["id"]
+    assert csv_export.status_code == 200 and "total_head_movement" in csv_export.text
+    assert client.get("/api/analytics/comparisons").json()["groups"] == []
+
+
+def test_declared_totals_and_unsafe_banker(client):
+    bad_totals = client.post("/api/simulations/deadlock", json={
+        "available": [1, 0], "maximum": [[1, 1]], "allocation": [[0, 0]], "declared_totals": [2, 0],
+    })
+    assert bad_totals.status_code == 422
+    unsafe = client.post("/api/simulations/deadlock", json={
+        "available": [0], "maximum": [[2], [2]], "allocation": [[1], [1]],
+    })
+    assert unsafe.status_code == 200
+    assert unsafe.json()["result"]["safe"] is False
+    assert unsafe.json()["result"]["unfinished"] == ["P0", "P1"]
+
+
+def test_csv_run_report_exports(client):
+    run = client.post("/api/simulations/memory", json={"references": [1, 2, 1, 3], "frames": 2}).json()
+    response = client.get(f"/api/reports/{run['id']}/export?format=csv")
+    assert response.status_code == 200
+    assert "FIFO" in response.text and "faults" in response.text
+
+
+def test_simulation_delete_preserves_activity_without_link(client):
+    run = client.post("/api/simulations/memory", json={"references": [1, 2], "frames": 1}).json()
+    deleted = client.delete(f"/api/simulations/{run['id']}")
+    assert deleted.status_code == 200
+    assert client.get(f"/api/simulations/{run['id']}").status_code == 404
