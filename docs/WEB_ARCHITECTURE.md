@@ -54,3 +54,38 @@ While FastAPI is running, interactive OpenAPI docs are served at `http://localho
 | `GET /api/analytics/overview`, `GET /api/analytics/comparisons` | Fetch summary counters and SHA-256-grouped compatible runs |
 | `GET /api/reports/{id}`, `GET /api/reports/{id}/export?format=json\|csv` | Load a completed report or export it as JSON/CSV |
 
+Malformed payloads return HTTP `422` with field-level details and append an `invalid` row to `activity_logs` without creating a completed simulation record. Missing IDs return `404`. If an unexpected runtime error occurs after a run row is created, the service marks that row `failed` with the error message.
+
+## Screen responsibilities
+
+The dashboard shows live SQLite counts, recent runs, activity entries, simulator links, and a domain comparison chart. The CPU screen provides an editable process table with unique PIDs, quantum input, dataset load/save controls, a Gantt timeline with explicit idle blocks, and waiting/turnaround metrics. The memory screen steps forward, backward, or on autoplay through resident-page snapshots, marking hits, faults, and evicted pages while labeling `OPT` as an offline benchmark.
+
+The deadlock screen edits `Available`, `Maximum`, and `Allocation` matrices (plus optional total-resource checks), displays the derived `Need` matrix and step-by-step release order, and notes that an unsafe snapshot does not mean processes are already deadlocked. The disk screen plots cylinder stops in service order, separates real request stops from SCAN's physical boundary turn (`0` or `cylinders - 1`), and totals head travel.
+
+Supporting workspace pages manage datasets (create, edit, duplicate, delete, JSON import/export, and integrated runs), browse run history with replay links back into each simulator, compare runs sharing an identical input snapshot on the analytics page, and print or export JSON/CSV reports.
+
+## Local environment and migrations
+
+You only need a `.env` file if you want to change `DATABASE_URL` or `CORS_ORIGINS` from the defaults in `.env.example`. Keep `.env`, SQLite `.db` files, `.venv`, and `node_modules` out of version control. Manual backend setup from the root of `Kernel_Scope`:
+
+```bash
+python3 -m venv backend/.venv
+backend/.venv/bin/python -m pip install -r backend/requirements.txt
+PYTHONPATH=. backend/.venv/bin/alembic -c backend/alembic.ini upgrade head
+```
+
+`start_web.sh` automates those checks and launches Uvicorn on `127.0.0.1:8000` plus Vite on `127.0.0.1:5173`. On startup, `backend/app/main.py` also ensures tables exist and seeds the two sample datasets so local demos recover cleanly if the SQLite file is deleted. SQLAlchemy accepts other connection strings (such as PostgreSQL), though local automated testing targets SQLite.
+
+## Mapping to the five project phases
+
+| Phase | Repository coverage |
+|---|---|
+| 1: System design and planning (20) | `docs/DESIGN_AND_PLAN.md`, this architecture guide, Pydantic schemas, SQLAlchemy/Alembic tables, and documented model assumptions |
+| 2: Core resource-management modules (20) | Python `FCFS`/`SJF`/`RR`, `FIFO`/`LRU`/`OPT`, Banker's safety, and `FCFS`/`SSTF`/`SCAN` modules shared by CLI and web routes |
+| 3: Analysis and comparison (20) | CLI CSV/JSON/SVG exports alongside web comparison charts, step traces, analytics views, and downloadable reports |
+| 4: Testing and reliability (20) | 74 automated tests (30 CLI `unittest`, 9 backend `pytest`, 26 frontend `Vitest`, 9 Playwright), TypeScript check, and Vite build |
+| 5: Documentation and demonstration (20) | `README.md`, phase docs, technical report, CLI and web demo scripts, `evidence/INDEX.md`, and `docs/SUBMISSION_CHECKLIST.md` |
+
+## Practical boundaries
+
+OS Resource Lab is built for single-user local coursework and teaching demos. It intentionally omits authentication, multi-tenant access controls, and production TLS/reverse-proxy hardening, and all visual charts read precomputed Python outputs rather than running simulations in the client.
