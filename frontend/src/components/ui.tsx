@@ -44,3 +44,41 @@ export function ErrorNotice({ children }: { children: ReactNode }) {
   return <div className="notice notice-error" role="alert"><AlertCircle size={17} aria-hidden="true" /><span>{children}</span></div>
 }
 
+export function LoadError({ message, onRetry, retryLabel = 'Retry loading data' }: { message: string; onRetry: () => void; retryLabel?: string }) {
+  return <div className="load-error">
+    <ErrorNotice>{message}</ErrorNotice>
+    <Button variant="secondary" onClick={() => onRetry()}>{retryLabel}</Button>
+  </div>
+}
+
+export function InfoNotice({ children }: { children: ReactNode }) {
+  return <div className="notice notice-info" role="note">{children}</div>
+}
+
+export function EmptyState({ title, detail }: { title: string; detail?: string }) {
+  return <div className="empty-state" role="status"><div className="empty-dot" aria-hidden="true" /><strong>{title}</strong>{detail && <span>{detail}</span>}</div>
+}
+
+export function Loading({ label = 'Loading data' }: { label?: string }) {
+  return <div className="loading-state" role="status" aria-live="polite"><LoaderCircle className="spin" size={22} aria-hidden="true" /><span>{label}</span></div>
+}
+
+export function StatusPill({ status }: { status: string }) {
+  return <span className={'status-pill status-' + status.toLowerCase()} aria-label={'Status: ' + status}>{status}</span>
+}
+
+export function AlgorithmChecks({ options, selected, onChange }: { options: string[]; selected: string[]; onChange: (next: string[]) => void }) {
+  return <div className="algorithm-checks" role="group" aria-label="Algorithm or policy choices">
+    {options.map(option => <label className="check-chip" key={option}>
+      <input type="checkbox" checked={selected.includes(option)} onChange={event => onChange(event.target.checked ? [...selected, option] : selected.filter(value => value !== option))} />
+      <span>{option}</span>
+    </label>)}
+  </div>
+}
+
+export function TableFrame({ children, minWidth = 620 }: { children: ReactNode; minWidth?: number }) {
+  return <div className="table-wrap" style={{ minWidth: 0 }} role="region" aria-label="Scrollable data table" tabIndex={0}>
+    <table style={{ minWidth }}>{children}</table>
+  </div>
+}
+
