@@ -68,3 +68,61 @@ export default function Dashboard() {
     </div>
     <div className="module-grid">{categories.map(item => <Link to={item.path} className="module-card" key={item.path}>
       <div className={'module-icon ' + item.tint} aria-hidden="true"><item.icon size={20} /></div>
+      <div><h3>{item.name}</h3><p>{item.detail}</p></div>
+      <ArrowUpRight className="module-arrow" size={17} aria-hidden="true" />
+    </Link>)}</div>
+
+    {summary && <div className="dashboard-columns">
+      <Card className="dashboard-chart-card">
+        <div className="panel-heading">
+          <div><div className="eyebrow">PERSISTED RESULT</div><h2>Latest algorithm comparison</h2></div>
+          <Link to="/analytics" className="icon-link" aria-label="Open analytics"><ArrowRight size={18} aria-hidden="true" /></Link>
+        </div>
+        <div className="dashboard-chart-controls">
+          <SelectField label="Resource domain" value={domain} onChange={event => setDomain(event.target.value as ReportDomain)}>
+            <option value="cpu">CPU scheduling</option>
+            <option value="memory">Memory management</option>
+            <option value="storage">Disk scheduling</option>
+          </SelectField>
+          {chartRun && <span className="run-context-compact">Run #{chartRun.id} · same input snapshot</span>}
+        </div>
+        {chartData.length && chartRun ? <>
+          <div className="dashboard-metric-label">{metric.label} <span>({metric.unit})</span></div>
+          <div className="chart-area" role="group" aria-label={metric.label + ' by algorithm'}>
+            <p className="sr-only">Values are from completed run #{chartRun.id}, using its saved input snapshot.</p>
+            <ResponsiveContainer width="100%" height={240}>
+              <BarChart data={chartData} margin={{ top: 10, right: 18, left: 4, bottom: 12 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--grid)" />
+                <XAxis dataKey="algorithm" tick={{ fontSize: 12, fill: 'var(--muted)', fontFamily: 'var(--font-data)' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 12, fill: 'var(--muted)', fontFamily: 'var(--font-data)' }} axisLine={false} tickLine={false} label={{ value: metric.unit, angle: -90, position: 'insideLeft', fill: 'var(--muted)', fontSize: 12 }} />
+                <Tooltip formatter={(value: number) => [value + ' ' + metric.unit, metric.label]} contentStyle={{ background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: 8, color: 'var(--text)', fontSize: 13 }} />
+                <Bar dataKey="value" name={metric.label} fill="var(--series-1)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <TableFrame minWidth={340}>
+            <caption>Measured {metric.label.toLowerCase()} from run #{chartRun.id} ({metric.unit})</caption>
+            <thead><tr><th>Algorithm</th><th>{metric.label} ({metric.unit})</th></tr></thead>
+            <tbody>{chartData.map(row => <tr key={row.algorithm}><td className="strong-cell">{row.algorithm}</td><td>{row.value}</td></tr>)}</tbody>
+          </TableFrame>
+          <p className="table-note">Algorithms in this view share run #{chartRun.id} and its saved input.</p>
+        </> : <EmptyState title={'No ' + domain + ' results yet'} detail="Run a simulation in this domain to see its persisted algorithm comparison." />}
+      </Card>
+
+      <Card className="activity-panel">
+        <div className="panel-heading">
+          <div><div className="eyebrow">RECENT ACTIVITY</div><h2>Run log</h2></div>
+          <Link to="/history" className="icon-link" aria-label="Open history"><ArrowRight size={18} aria-hidden="true" /></Link>
+        </div>
+        <div className="activity-list">
+          {summary.recent_activity.length ? summary.recent_activity.slice(0, 6).map(item => <div className="activity-item" key={item.id}>
+            <div className={'activity-dot activity-' + item.status} aria-hidden="true">{item.status === 'completed' ? <CheckCircle2 size={14} /> : <Activity size={14} />}</div>
+            <div className="activity-copy"><strong>{item.message}</strong><small>{item.category} · {shortDate(item.timestamp)}</small></div>
+            <StatusPill status={item.status} />
+          </div>) : <EmptyState title="No activity recorded" detail="Database actions appear here as you work." />}
+        </div>
+      </Card>
+    </div>}
+  </div>
+}
+
