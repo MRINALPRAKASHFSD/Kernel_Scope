@@ -254,3 +254,48 @@ test('theme toggle changes the rendered document theme', async ({ page }) => {
 })
 
 test('responsive pages fit at target widths without clipping controls or page-level overflow', async ({ page }) => {
+  test.setTimeout(180_000)
+  const widths = [375, 768, 1024, 1440]
+  const primaryControls: Record<string, { role: 'button' | 'link' | 'combobox'; name: string | RegExp }> = {
+    '/': { role: 'link', name: /CPU scheduling/ },
+    '/analytics': { role: 'combobox', name: 'Resource domain' },
+    '/datasets': { role: 'button', name: 'New dataset' },
+    '/history': { role: 'button', name: 'Refresh' },
+    '/reports': { role: 'combobox', name: 'Completed simulation' },
+    '/cpu': { role: 'button', name: /Run comparison/ },
+    '/memory': { role: 'button', name: /Run comparison/ },
+    '/deadlock': { role: 'button', name: 'Run safety check' },
+    '/disk': { role: 'button', name: /Run comparison/ },
+    '/about': { role: 'link', name: /Open \/docs/ },
+  }
+
+  for (const width of widths) {
+    await page.setViewportSize({ width, height: 900 })
+    for (const item of navigation) {
+      await page.goto(item.path)
+      await expect(page.getByRole('heading', { name: item.heading, exact: true })).toBeVisible()
+      const control = page.getByRole(primaryControls[item.path].role, { name: primaryControls[item.path].name }).first()
+      await expect(control).toBeVisible()
+      const box = await control.boundingBox()
+      expect(box, `${item.path} primary control should have a visible layout box at ${width}px`).not.toBeNull()
+      expect(box!.x, `${item.path} control left edge at ${width}px`).toBeGreaterThanOrEqual(0)
+      expect(box!.x + box!.width, `${item.path} control right edge at ${width}px`).toBeLessThanOrEqual(width + 1)
+
+      const pageWidth = await page.evaluate(() => Math.max(document.documentElement.scrollWidth, document.body.scrollWidth))
+      expect(pageWidth, `${item.path} should not create page-level horizontal overflow at ${width}px`).toBeLessThanOrEqual(width + 1)
+      if (item.path === '/' && (width === 375 || width === 1440)) {
+        await expect(page.locator('[aria-label="Workspace statistics"]')).toBeVisible()
+        await page.getByLabel('Resource domain').selectOption('storage')
+        await expect(page.getByRole('group', { name: 'Total head movement by algorithm' })).toBeVisible()
+        await capture(page, `responsive-${width}.png`, true)
+      }
+    }
+  }
+
+  await page.setViewportSize({ width: 375, height: 900 })
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Open navigation' }).click()
+  await expect(page.getByRole('navigation', { name: 'Primary navigation' })).toBeVisible()
+  await page.getByRole('navigation', { name: 'Primary navigation' }).getByRole('link', { name: 'CPU scheduling' }).click()
+  await expect(page.getByRole('heading', { name: 'CPU scheduling' })).toBeVisible()
+})
