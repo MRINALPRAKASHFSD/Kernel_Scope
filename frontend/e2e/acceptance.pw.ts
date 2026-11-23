@@ -148,3 +148,109 @@ test('memory trace labels resident order, hits, faults, and an actual replacemen
   await expect(page.getByRole('button', { name: /FAULT/ }).first()).toBeVisible()
 })
 
+test('Banker safe and unsafe samples show their real API results', async ({ page }) => {
+  await page.goto('/deadlock')
+
+  let responsePromise = page.waitForResponse(response =>
+    response.request().method() === 'POST' && new URL(response.url()).pathname === '/api/simulations/deadlock',
+  )
+  await page.getByRole('button', { name: 'Load safe sample' }).click()
+  await page.getByRole('button', { name: 'Run safety check' }).click()
+  let response = await responsePromise
+  expect(response.ok()).toBeTruthy()
+  let result = (await response.json()).result
+  expect(result.safe).toBe(true)
+  await expect(page.locator('.result-badge')).toHaveText(/SAFE/)
+  await expect(page.getByText('Need matrix', { exact: true })).toBeVisible()
+  await expect(page.getByRole('list', { name: 'Safe process completion sequence' })).toBeVisible()
+  await expect(page.getByText('Available resources after each completion')).toBeVisible()
+  await dismissToasts(page)
+  await page.evaluate(() => window.scrollTo(0, 0))
+  await capture(page, 'banker-safe.png')
+  await page.getByText('Need matrix', { exact: true }).scrollIntoViewIfNeeded()
+  await capture(page, 'banker-safe-matrices.png')
+
+  responsePromise = page.waitForResponse(response =>
+    response.request().method() === 'POST' && new URL(response.url()).pathname === '/api/simulations/deadlock',
+  )
+  await page.getByRole('button', { name: 'Load unsafe sample' }).click()
+  await page.getByRole('button', { name: 'Run safety check' }).click()
+  response = await responsePromise
+  expect(response.ok()).toBeTruthy()
+  result = (await response.json()).result
+  expect(result.safe).toBe(false)
+  await expect(page.locator('.result-badge')).toHaveText(/UNSAFE/)
+  await expect(page.getByText('Need matrix', { exact: true })).toBeVisible()
+  await expect(page.getByText(/Unfinished processes:/)).toBeVisible()
+  await dismissToasts(page)
+  await page.evaluate(() => window.scrollTo(0, 0))
+  await capture(page, 'banker-unsafe.png')
+})
+
+test('disk SCAN identifies requests that coincide with either physical endpoint', async ({ page }) => {
+  await page.goto('/disk')
+  await page.getByLabel('Cylinder count').fill('200')
+  await page.getByLabel('Initial head').fill('50')
+  await page.getByLabel('Request queue').fill('0, 199')
+  await page.locator('.direction-picker').getByRole('button', { name: 'Up', exact: true }).click()
+
+  const runAndSelectScan = async () => {
+    const responsePromise = page.waitForResponse(response =>
+      response.request().method() === 'POST' && new URL(response.url()).pathname === '/api/simulations/disk',
+    )
+    await page.getByRole('button', { name: /Run comparison/ }).click()
+    const response = await responsePromise
+    expect(response.ok()).toBeTruthy()
+    const run = await response.json()
+    const scan = run.result.algorithms.find((item: { algorithm: string }) => item.algorithm === 'SCAN')
+    expect(scan, 'SCAN route should come from the live API response').toBeTruthy()
+    await page.getByRole('button', { name: 'SCAN', exact: true }).click()
+    return scan
+  }
+
+  const up = await runAndSelectScan()
+  expect(up.route).toContain(199)
+  await expect(page.locator('.route-step b[title*="request stop"][title*="physical SCAN endpoint"]')).toHaveText('199')
+  await expect(page.getByText('Request + SCAN endpoint', { exact: true })).toBeVisible()
+  await dismissToasts(page)
+  await capture(page, 'disk-scan-upper-boundary.png')
+
+  await page.locator('.direction-picker').getByRole('button', { name: 'Down', exact: true }).click()
+  const down = await runAndSelectScan()
+  expect(down.route).toContain(0)
+  await expect(page.locator('.route-step b[title*="request stop"][title*="physical SCAN endpoint"]')).toHaveText('0')
+})
+
+test('analytics and reports display the persisted integrated result', async ({ page }) => {
+  await page.goto('/analytics')
+  await page.getByLabel('Persisted input and run').selectOption(String(baselineRunId))
+  await expect(page.getByRole('group', { name: 'Average waiting time by algorithm' })).toBeVisible()
+  await expect(page.getByRole('cell', { name: 'FCFS', exact: true })).toBeVisible()
+  await expect(page.locator('.run-context')).toContainText(`Run #${baselineRunId}`)
+  await capture(page, 'analytics-persisted-results.png')
+
+  await page.goto('/reports')
+  await page.getByLabel('Completed simulation').selectOption(String(baselineRunId))
+  await expect(page.getByRole('heading', { name: 'Integrated resource simulation' })).toBeVisible()
+  await expect(page.getByText('Bundled Baseline', { exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: `Download JSON for run ${baselineRunId}` })).toBeVisible()
+  await capture(page, 'reports-persisted-results.png')
+})
+
+test('theme toggle changes the rendered document theme', async ({ page }) => {
+  await page.goto('/')
+  await page.getByLabel('Resource domain').selectOption('storage')
+  await expect(page.getByRole('group', { name: 'Total head movement by algorithm' })).toBeVisible()
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+  await capture(page, 'theme-dark.png')
+
+  await page.getByRole('button', { name: 'Switch to light theme' }).click()
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
+  await expect(page.locator('html')).toHaveCSS('color-scheme', 'light')
+  await capture(page, 'theme-light.png')
+
+  await page.getByRole('button', { name: 'Switch to dark theme' }).click()
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+})
+
+test('responsive pages fit at target widths without clipping controls or page-level overflow', async ({ page }) => {
