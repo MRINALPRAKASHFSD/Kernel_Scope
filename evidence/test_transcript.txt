@@ -1,0 +1,25 @@
+OS Resource Lab final test summary — 2026-11-24
+
+python3 -m unittest discover -s tests -v
+PASS — 30 CLI tests
+
+PYTHONPATH=. backend/.venv/bin/python -m pytest backend/tests -q
+PASS — 9 backend tests
+
+npm --prefix frontend test
+PASS — 26 frontend Vitest tests
+
+(cd frontend && npx tsc -b --pretty false)
+PASS — TypeScript check
+
+npm --prefix frontend run build
+PASS — production build
+
+npm --prefix frontend run test:e2e
+PASS — 9 Chromium Playwright browser tests
+
+TOTAL — 74 tests passed, 0 failed. TypeScript check and production build passed.
+Browser suite: all ten routes; CPU, memory, Banker SAFE/UNSAFE and disk SCAN; persisted analytics/reports; both themes; 375/768/1024/1440 px responsive widths; no uncaught application errors.
+Browser evidence: 13 genuine screenshots under evidence/browser/; see evidence/INDEX.md.
+
+This summary records completed verification; consult docs/web_test_results.txt for full scope and reproduction commands.
