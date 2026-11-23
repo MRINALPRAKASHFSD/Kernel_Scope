@@ -1,0 +1,46 @@
+OS Resource Lab — final verification record
+Verified: 2026-11-24
+
+RESULT: PASS
+
+Automated test totals
+- Python CLI unittest: 30 passed
+- Backend pytest: 9 passed
+- Frontend Vitest: 26 passed
+- Playwright Chromium browser acceptance: 9 passed
+- Total: 74 passed, 0 failed
+- TypeScript project check: passed (`cd frontend && npx tsc -b --pretty false`)
+- Frontend production build: passed (`npm --prefix frontend run build`)
+
+Commands (from the project root)
+1. `python3 -m unittest discover -s tests -v` — 30 passed.
+2. `PYTHONPATH=. backend/.venv/bin/python -m pytest backend/tests -q` — 9 passed.
+3. `npm --prefix frontend test` — 26 passed.
+4. `(cd frontend && npx tsc -b --pretty false)` — passed.
+5. `npm --prefix frontend run build` — passed.
+6. `npm --prefix frontend run test:e2e` — 9 passed in Chromium.
+
+Browser acceptance scope
+- Dashboard showed measured counts from the API-backed isolated test database.
+- All 10 primary navigation routes loaded with the application shell.
+- CPU Gantt process order and interval labels matched the API result, including idle spans; average wait and turnaround were shown as primary metrics.
+- Memory trace identified resident-page order, HIT/FAULT states, and an actual eviction detail.
+- Banker SAFE and UNSAFE states rendered with Need matrix and sequence/unfinished-process details.
+- Disk SCAN test covered request cylinders 0 and 199 where each coincides with the physical endpoint.
+- Analytics and Reports reopened a saved integrated run.
+- Theme toggle switched between dark and light document themes.
+- Responsive checks covered 375, 768, 1024, and 1440 CSS pixels across all ten routes, tested important controls and page-level horizontal overflow, and exercised the mobile navigation.
+- No uncaught page errors or application console errors were observed by the test suite.
+
+Isolation and evidence
+- Playwright started project-owned FastAPI and Vite processes on dedicated test ports and used a disposable SQLite database in the operating system temporary directory. The user's saved simulation history was not used for test writes.
+- Browser tests used bundled sample datasets and actual API responses. They created 13 genuine Chromium screenshots in `evidence/browser/`; `evidence/INDEX.md` maps every capture to the page and state shown.
+- No screenshot was composed or substituted from a chart export.
+
+Validated baseline results
+- CPU scheduling: FCFS 4.75, SJF 4, RR 5 average waiting time.
+- Page replacement: FIFO 10, LRU 9, OPT 7 faults.
+- Banker sample: SAFE sequence P1, P3, P0, P2, P4.
+- Disk movement: FCFS 640, SSTF 236, SCAN 331 cylinders.
+
+No algorithm implementation, backend API contract, or database schema was changed for browser acceptance or packaging.
