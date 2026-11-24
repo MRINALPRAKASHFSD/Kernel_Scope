@@ -1,91 +1,82 @@
-# OS Resource Lab: Design system
+# KernelScope: Design system
 
-> Visual and interaction specification for the React, TypeScript, and Vite web interface in `Kernel_Scope`. Initial token candidates were explored with search catalogs and then pared back to fit a dense operating-system lab workbench.
+> Visual and interaction specification for the KernelScope React, TypeScript, and Vite interface (`design-system/os-resource-lab/MASTER.md` retains its original folder path so existing archive references stay valid).
 
-## Why generic dashboard templates did not fit
+## Why generic dashboard templates were rejected
 
-Early catalog searches suggested a single-column landing page with an orange-on-dark palette categorized under "Calculator & Unit Converter", alongside flashier Cyberpunk, OLED, Neumorphism, and HUD themes. None of those matched how students or instructors use this tool. OS Resource Lab is a ten-route workbench for editing process queues and resource matrices, stepping through frame traces, comparing seek routes, and inspecting saved runs. Neon glow, scanlines, heavy drop shadows, and oversized marketing cards get in the way of reading numbers.
+Initial catalog searches returned a single-column landing layout categorized as a "Calculator & Unit Converter" with an orange-on-dark palette, alongside Cyberpunk, OLED, Neumorphism, and HUD styles. Those patterns work poorly for an operating-system workbench. KernelScope spans ten routes for editing process queues and Banker matrices, stepping through page frames, inspecting cylinder routes, and auditing saved runs. Neon glow, scanlines, heavy shadows, and marketing hero cards compete with numeric data.
 
-Instead, the interface borrows the calm feel of a benchtop lab instrument: crisp borders, flat neutral panels, Fira Sans for prose and labels, Fira Code with tabular numerals for IDs and measurements, grouped bar charts when exact comparisons matter, and keyboard-friendly tables that contain horizontal scrolling locally rather than stretching the page.
+KernelScope instead follows a calm benchtop-instrument style: crisp 1 px borders, flat slate/paper panels, `Fira Sans` for labels and prose, `Fira Code` with tabular numerals for PIDs, cylinder addresses, matrices, and metrics, grouped bar charts for same-unit comparisons, and locally scrollable tables that never push the viewport wider than `100vw`.
 
 ## 1. Core design goals
 
-Every simulator screen should answer three questions at a glance:
+Every simulator workbench answers three questions immediately:
 
 1. Which workload or resource snapshot was submitted?
-2. Which scheduling, replacement, or safety policy produced the active view?
-3. Which trace steps and metrics back up the summary numbers?
+2. Which scheduling, replacement, or safety policy produced the active trace?
+3. Which step-by-step events back up the summary numbers?
 
-Charts exist to explain algorithm behavior on a known input. Every chart names its metric and unit, pairs with a readable table, and avoids hiding essential numbers behind hover tooltips.
+Every chart names its metric and unit, pairs with a readable HTML table, and exposes exact figures without forcing pointer hover.
 
-## 2. Visual character
+## 2. Brand identity and shell chrome
 
-Wide viewports keep a persistent left navigation rail; narrow viewports collapse navigation into a focus-managed drawer. Surfaces stay flat with clear 1 px borders, reserving subtle shadows for floating menus or drawers. Identity comes from four practical choices:
+Wide viewports (`> 1024 px`) render a fixed left navigation rail; narrower viewports collapse navigation into a focus-trapped modal drawer with `Escape` and scrim dismissal. Brand assets live in `frontend/public/`:
 
-- Fira Sans for headings, controls, and explanations paired with Fira Code for PIDs, cylinder numbers, matrices, and metrics
-- Explicit trace diagrams (CPU Gantt bars with idle spans, ordered memory frames, Banker release steps, and disk cylinder routes)
-- Consistent Lucide icons paired with text labels
-- A muted teal primary accent (`--accent`) and warm amber secondary highlight (`--amber`) over slate surfaces
+- `kernelscope-mark.svg` (and `kernelscope-mark.png`) renders at `38x38 px` in the sidebar header alongside `KernelScope / Simulation workbench`.
+- `favicon.svg` and `favicon.ico` provide crisp browser tab icons in dark and light OS appearances.
+- `kernelscope-logo.svg` (and `kernelscope-logo.png`) provides the horizontal lockup, while printable execution reports display the `KS` monogram badge under `KERNELSCOPE · EXECUTION REPORT`.
 
-## 3. Color tokens
+## 3. Semantic color tokens
 
-Colors map through CSS custom properties in `frontend/src/styles.css` rather than hardcoded hex strings inside JSX components.
+All colors resolve through CSS custom properties in `frontend/src/styles.css` rather than inline component hex values.
 
 | Token | Dark theme | Light theme | Role |
 |---|---|---|---|
-| `--page` | `#10161B` | `#F4F6F4` | Page background |
+| `--page` | `#10161B` | `#F4F6F4` | Document canvas |
 | `--panel` | `#171F25` | `#FFFFFF` | Primary card and workbench surface |
-| `--panel-soft` | `#202B32` | `#E9EFED` | Inset surface or selected row |
-| `--text` | `#E9F0F2` | `#182429` | Body and heading text |
-| `--muted` | `#B6C2C6` | `#52646A` | Secondary labels |
-| `--subtle` | `#91A2A8` | `#62757B` | Units and timestamps |
-| `--line` | `#63747A` | `#63747A` | Input and panel borders |
-| `--grid` | `#2B383E` | `#DCE4E2` | Table dividers and chart gridlines |
-| `--accent` | `#41C7B5` | `#00796D` | Primary buttons, focus ring, active nav |
+| `--panel-soft` | `#202B32` | `#E9EFED` | Nested trace block or selected row |
+| `--text` | `#E9F0F2` | `#182429` | Primary headings and body copy |
+| `--muted` | `#B6C2C6` | `#52646A` | Secondary labels and axis ticks |
+| `--subtle` | `#91A2A8` | `#62757B` | Units and metadata |
+| `--line` | `#63747A` | `#63747A` | Control and panel borders |
+| `--grid` | `#2B383E` | `#DCE4E2` | Table rules and chart gridlines |
+| `--accent` | `#41C7B5` | `#00796D` | Primary actions, focus ring, active nav |
 | `--on-accent` | `#0B2523` | `#FFFFFF` | Foreground on `--accent` |
-| `--info` | `#6DBDD2` | `#246B84` | Informational badges and chart series |
-| `--green` | `#59C99A` | `#26734F` | `SAFE`, `HIT`, or completed status |
-| `--amber` | `#F2B85F` | `#875400` | Warnings and SCAN boundary markers |
+| `--info` | `#6DBDD2` | `#246B84` | Informational notices and series |
+| `--green` | `#59C99A` | `#26734F` | `SAFE`, `HIT`, and `completed` states |
+| `--amber` | `#F2B85F` | `#875400` | Warnings and `SCAN` boundary markers |
 | `--red` | `#EE8B8B` | `#A83F43` | `UNSAFE`, `FAULT`, errors, delete actions |
-| `--shadow` | `rgba(0,0,0,.24)` | `rgba(24,36,41,.09)` | Drawer and overlay elevation |
+| `--shadow` | `rgba(0,0,0,.24)` | `rgba(24,36,41,.09)` | Overlay and drawer elevation |
 
-Never rely on color alone to separate a page hit from a fault, a safe state from an unsafe state, or one policy from another; always pair color with text badges (`HIT`, `FAULT`, `SAFE`, `UNSAFE`) or distinct markers. Key text pairs clear WCAG AA/AAA contrast ratios: dark text on `--page` hits 15.8:1 (muted on `--panel` 9.15:1), and light text on `--page` hits 14.61:1 (muted on white 6.20:1, white on light `--accent` 5.31:1).
+Color never carries state alone: hits/faults, safe/unsafe verdicts, and disk route stops always pair color with text badges (`HIT`, `FAULT`, `SAFE`, `UNSAFE`) or distinct marker shapes. Key contrast ratios clear WCAG AA/AAA thresholds (15.8:1 dark foreground on `--page`, 9.15:1 dark muted on `--panel`, 14.61:1 light foreground on `--page`, 6.20:1 light muted on white, and 5.31:1 white on light `--accent`).
 
 ## 4. Typography scale
 
 | Role | Size / line height | Weight | Usage |
 |---|---:|---:|---|
 | Page title | 26 / 32 px | 600 to 700 | Single `h1` per route |
-| Section title | 18 / 24 px | 600 | Editor and result panel headers |
-| Subsection title | 15 / 21 px | 600 | Matrix, timeline, and chart titles |
-| Body | 14 / 21 px | 400 | Explanations and callouts |
-| Control | 14 / 20 px | 500 | Buttons, inputs, selects, tabs |
-| Data | 13 / 19 px | 400 to 500 | Tables, PIDs, routes, numeric cells |
-| Supporting label | 12 / 16 px | 500 to 600 | Units, column headers, metadata |
+| Section title | 18 / 24 px | 600 | Workload and result card headings |
+| Subsection title | 15 / 21 px | 600 | Matrix, timeline, and chart headings |
+| Body | 14 / 21 px | 400 | Descriptions and model callouts |
+| Control | 14 / 20 px | 500 | Buttons, inputs, selects, policy tabs |
+| Data | 13 / 19 px | 400 to 500 | Tables, PIDs, cylinder routes, metrics |
+| Supporting label | 12 / 16 px | 500 to 600 | Units, column headers, timestamps |
 
-Keep functional labels at 12 px or above, write headings and form labels in sentence case, and enable `tabular-nums` on numeric columns so figures line up vertically.
+Headings and form labels use sentence case, essential labels stay at `12 px` or larger, and `tabular-nums` keeps numeric columns aligned vertically.
 
-## 5. Layout and spacing
+## 5. Spacing and responsive layout
 
-Spacing steps follow a 4 px grid (`4, 8, 12, 16, 24, 32, 40 px`, with `48 px` reserved for major section breaks) inside a centered container capped near `1440 px`.
+Spacing follows a `4 px` rhythm (`4, 8, 12, 16, 24, 32, 40 px`, plus `48 px` major section breaks) inside a centered container up to `1440 px`.
 
-On desktop and laptop screens, simulator routes split into a two-column workbench: workload inputs and run buttons on the left, traces and comparison tables on the right (giving extra width to the result side). Tablet and mobile widths stack those panes into a single column without horizontal page overflow. Wide matrices scroll inside focusable table wrappers (`overflow-x: auto`) rather than pushing the viewport wider than `100vw`.
+Simulator routes use a two-column workbench on desktop (`workload + controls` on the left, `trace + metrics` on the right) and stack into a single column at tablet and mobile widths (`375, 768, 1024, 1440 px` verified in Playwright). Wide tables scroll horizontally inside `role="region"` wrappers (`overflow-x: auto`) with zero document-level horizontal overflow.
 
-## 6. Charts and algorithm traces
+## 6. Domain visualization conventions
 
-- Use grouped bar charts when comparing algorithms on the same workload and unit; never plot unrelated units on a shared axis.
-- Use ordered step lines only when step-to-step progression is meaningful (such as disk head movement across service stops).
-- On CPU scheduling, show the Gantt timeline with explicit `IDLE` blocks alongside per-process completion, turnaround, and waiting columns.
-- On Memory management, highlight the active reference step, `HIT`/`FAULT` badge, resident page order, and any evicted page, noting that `OPT` uses future knowledge.
-- On Deadlock handling, display `Available`, `Maximum`, `Allocation`, and `Need` matrices plus the step-by-step release sequence, and keep the note explaining that `UNSAFE` does not prove an active deadlock next to the verdict.
-- On Disk scheduling, mark starting head, requested cylinders, and SCAN's physical endpoint (`0` or `cylinders - 1`) distinctly while keeping duplicate stops visible.
+- CPU scheduling renders proportional `.gantt-segment` blocks with synthesized `IDLE` intervals alongside per-process completion, turnaround, and waiting columns.
+- Memory management highlights the active step chip, `HIT`/`FAULT` badge, ordered resident pages (explicitly noted as algorithm residency order rather than physical RAM frame indices), eviction message, and offline `OPT` benchmark note.
+- Deadlock handling displays `Available`, `Maximum`, `Allocation`, and `Need` matrices plus the numbered safe sequence and post-release `Work` table, keeping the `UNSAFE != active deadlock` explanation adjacent to the verdict.
+- Disk scheduling plots cylinder position against service step using distinct shapes for initial head (`square`), direction turns (`triangle`), `SCAN` physical endpoints (`diamond`), and combined request + `SCAN` endpoints (`star`).
 
-## 7. Navigation, forms, and error states
+## 7. Error handling and theme persistence
 
-Desktop navigation groups Overview, Analytics, Datasets, Run history, Reports, the four OS simulators, and About & docs in a fixed rail. Mobile screens (`375 px`) open the same links inside a dismissible drawer with Escape-key and backdrop support.
-
-Forms keep labels, units, and numeric bounds visible, preserve typed inputs when validation fails, disable duplicate clicks while a request is in flight, and separate `Run comparison`, `Save as dataset`, and `Load baseline` visually. Failed API loads render an alert banner with an explicit retry button rather than pretending a list is empty.
-
-## 8. Light and dark themes
-
-Both `[data-theme="dark"]` and `[data-theme="light"]` define complete token sets with matching `color-scheme` values so native scrollbars, inputs, and selects match the active theme. Theme choice persists across route changes, and print styles keep report tables and charts legible on white paper.
+Failed API loads display `role="alert"` banners with explicit retry buttons rather than empty-list placeholders. `[data-theme="dark"]` and `[data-theme="light"]` persist in `localStorage` (`osrl-theme`), update `document.documentElement.style.colorScheme` and `<meta name="theme-color">`, and format cleanly for monochrome printing on `/reports`.
