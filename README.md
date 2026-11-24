@@ -108,3 +108,93 @@ Additional records live under `backend/`, `docs/`, and `evidence/`:
 
 ## Validation and test suite
 
+Quick CLI sanity checks:
+
+```bash
+python3 -m unittest discover -s tests -v
+./run.sh --mode demo --dataset samples/unsafe.json --output outputs/unsafe_case
+./run.sh --mode demo --dataset samples/invalid.json --output outputs/invalid_case
+# Expected: invalid.json exits with status 2, prints an ERROR message, and writes no results.json.
+printf '7\n0\n' | ./run.sh --mode menu
+# Expected: prints 'Invalid choice' and then 'Goodbye'.
+```
+
+The automated test suite has 74 passing tests: 30 Python `unittest` cases for the CLI and core algorithms, 9 `pytest` API and persistence tests, 26 `Vitest` component and helper tests, and 9 Playwright end-to-end browser tests. Playwright spins up the real Vite and FastAPI servers against a temporary SQLite database, visits all ten routes, exercises each simulator, checks saved analytics and reports, toggles light and dark themes, tests 375, 768, 1024, and 1440 px viewports, and fails on any console or page error. See [`docs/web_test_results.txt`](docs/web_test_results.txt), [`evidence/test_transcript.txt`](evidence/test_transcript.txt), and [`docs/TEST_PLAN.md`](docs/TEST_PLAN.md).
+
+## Clean checkout verification
+
+From a fresh clone of `Kernel_Scope`, set up dependencies once:
+
+```bash
+python3 -m venv backend/.venv
+backend/.venv/bin/python -m pip install -r backend/requirements.txt
+npm --prefix frontend ci
+(cd frontend && npx playwright install chromium)
+```
+
+Then run the full check sequence:
+
+```bash
+chmod +x run.sh
+./run.sh --mode demo
+./run.sh --mode demo --dataset samples/unsafe.json --output outputs/unsafe_case
+./run.sh --mode demo --dataset samples/invalid.json --output outputs/invalid_case
+python3 -m unittest discover -s tests -v
+PYTHONPATH=. backend/.venv/bin/python -m pytest backend/tests -q
+npm --prefix frontend test
+(cd frontend && npx tsc -b --pretty false)
+npm --prefix frontend run build
+npm --prefix frontend run test:e2e
+printf '7\n0\n' | ./run.sh --mode menu
+```
+
+Expected results: baseline exports appear in `outputs/`, `unsafe.json` reports `UNSAFE`, `invalid.json` exits with code `2` without writing completed results, invalid API payloads log an `invalid` activity entry without creating a completed run, menu input `7` warns before `0` exits with `Goodbye`, and all 74 tests pass alongside TypeScript and Vite production builds.
+
+## Notes on evidence files
+
+The four PNGs directly inside `evidence/` come from CLI outputs rather than browser captures:
+
+- `memory_chart.png` shows baseline page faults (FIFO 10, LRU 9, OPT 7).
+- `scheduling_chart.png` shows average waiting time (FCFS 4.75, SJF 4, RR 5).
+- `storage_chart.png` shows total head movement (FCFS 640, SSTF 236, SCAN 331).
+- `terminal_trace.png` renders the captured baseline CLI text showing a SAFE Banker run.
+
+All 13 live browser screenshots sit in `evidence/browser/` and cover the dashboard, CPU Gantt chart, memory resident order, Banker safe and unsafe runs, disk SCAN boundary handling, analytics, reports, theme switching, and mobile/desktop widths. [`docs/CORRECTNESS_REVIEW.md`](docs/CORRECTNESS_REVIEW.md) compares those numbers against hand-worked traces.
+
+## Troubleshooting
+
+If `start_web.sh` reports a busy port, run `lsof -nP -iTCP:5173 -iTCP:8000 -sTCP:LISTEN` to see what is holding port 5173 or 8000, and stop any previous launcher session with Ctrl+C.
+
+If Python imports or Alembic commands fail, check that `python3` is 3.11 or newer, reinstall packages with `backend/.venv/bin/python -m pip install -r backend/requirements.txt`, and run `PYTHONPATH=. backend/.venv/bin/alembic -c backend/alembic.ini upgrade head` from the repository root. Also check `DATABASE_URL` if you customized `.env`.
+
+If Vite fails to start, confirm Node.js and npm are installed and run `npm --prefix frontend ci`. When the browser cannot reach the API, check `http://localhost:8000/api/health` and inspect `outputs/web-backend.log` plus `outputs/web-frontend.log`.
+
+If a custom dataset fails validation with exit code 2, compare its keys and value ranges against `samples/baseline.json`. And if `outputs/` still reflects an older dataset, re-run `./run.sh --mode demo` with your chosen file to refresh the JSON, CSV, and SVG exports.
+
+## Repository layout
+
+```text
+Kernel_Scope/
+├── run.sh                         # Bash CLI entrypoint
+├── start_web.sh                   # Local full-stack launcher
+├── frontend/                      # React and TypeScript web app
+├── backend/                       # FastAPI, SQLAlchemy, Alembic, API tests
+├── os_sim/                        # Shared Python simulation package
+│   ├── cli.py                     # Menu, argument parsing, logging
+│   ├── validation.py              # Input type and bounds checks
+│   ├── scheduling.py              # FCFS, SJF, RR
+│   ├── memory.py                  # FIFO, LRU, OPT
+│   ├── deadlock.py                # Banker's safety check
+│   ├── storage.py                 # FCFS, SSTF, SCAN
+│   └── reporting.py               # JSON, CSV, and SVG writers
+├── samples/                       # Baseline, unsafe, and invalid datasets
+├── outputs/                       # Generated baseline/unsafe CSV, SVG, JSON
+├── tests/test_simulator.py        # 30 CLI and algorithm unit tests
+├── docs/                          # Design, architecture, report, test plan, demo guides
+├── design-system/os-resource-lab/ # UI design specification (MASTER.md)
+└── evidence/                      # Verification logs, chart previews, 13 Playwright PNGs
+```
+
+## Project phases and submission notes
+
+[`docs/FINAL_AUDIT.md`](docs/FINAL_AUDIT.md) and [`docs/SUBMISSION_CHECKLIST.md`](docs/SUBMISSION_CHECKLIST.md) map the repository to the five capstone phases: system design, core OS modules, algorithm comparison, testing, and documentation. UI design decisions are recorded in [`design-system/os-resource-lab/MASTER.md`](design-system/os-resource-lab/MASTER.md). Before turning in an academic archive, review the checklist to add any required student metadata or course declarations and make sure you can walk through every trace and assumption live.
