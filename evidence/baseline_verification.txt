@@ -1,4 +1,4 @@
-OS Resource Lab baseline/unsafe/invalid CLI verification
+KernelScope baseline/unsafe/invalid CLI verification
 Date: 2026-11-24
 
 Command: ./run.sh --mode demo --dataset samples/baseline.json --output /var/folders/3p/ygy8kywn01q3cj7wf6jb6j0h0000gn/T/osrl-audit-pm920fh5/baseline

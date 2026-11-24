@@ -1,4 +1,4 @@
-OS Resource Lab Alembic migration verification
+KernelScope Alembic migration verification
 Date: 2026-11-24 11:59:10 IST
 
 $ PYTHONPATH=. backend/.venv/bin/alembic -c backend/alembic.ini upgrade head
