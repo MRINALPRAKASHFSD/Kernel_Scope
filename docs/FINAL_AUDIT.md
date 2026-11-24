@@ -1,29 +1,28 @@
 # Final repository and package audit
 
-Repository: `Kernel_Scope` (`OS Resource Lab`)
-Tracked deliverable files: 130
-Live browser screenshots: 13 under `evidence/browser/`
+Repository: `MRINALPRAKASHFSD/Kernel_Scope` (`KernelScope`)
+Preserved local submission archive: `os_resource_capstone_final.zip` (untouched on disk; gitignored)
+Live browser screenshots: 13 PNG files under `evidence/browser/`
 
-The repository includes the React and TypeScript frontend, CSS theme tokens, Vitest component and helper suites, Playwright configuration and end-to-end acceptance tests, FastAPI routes/services/models, Alembic migration scripts, the `os_sim` Python algorithm package, Bash launchers, sample datasets, documentation, verified JSON/CSV/SVG outputs, the `design-system/os-resource-lab/MASTER.md` specification, and verification transcripts. Screenshot filenames and routes are mapped in `evidence/INDEX.md`.
+The `Kernel_Scope` repository tracks the KernelScope React/TypeScript frontend (`frontend/`), brand and favicon assets (`frontend/public/`), Vitest suites, Playwright config and Chromium e2e suite (`frontend/e2e/acceptance.pw.ts`), FastAPI application and SQLAlchemy/Alembic persistence (`backend/`), shared standard-library Python algorithms (`os_sim/`), Bash launchers (`run.sh`, `start_web.sh`), JSON workloads (`samples/`), verified CLI exports (`outputs/`), design specification (`design-system/os-resource-lab/MASTER.md`), technical and historical documentation (`docs/`), and verification records (`evidence/`).
 
-## Recorded verification results
+## Automated verification summary
 
-All 74 automated tests pass with zero failures:
+- Python CLI `unittest`: 30 passed (`python3 -m unittest discover -s tests -v`)
+- Backend `pytest`: 9 passed (`PYTHONPATH=. backend/.venv/bin/python -m pytest backend/tests -q`)
+- Frontend `Vitest`: 26 passed (`npm --prefix frontend test`)
+- Playwright Chromium e2e: 9 passed (`npm --prefix frontend run test:e2e`)
+- Total automated tests: 74 passed, 0 failed
+- TypeScript project check (`cd frontend && npx tsc -b --pretty false`) and production bundle (`npm --prefix frontend run build`): passed
 
-- Python CLI `unittest`: 30 passed
-- Backend `pytest`: 9 passed
-- Frontend `Vitest`: 26 passed
-- Playwright Chromium e2e: 9 passed
-- TypeScript compiler check (`tsc -b`) and Vite production build: passed
+Playwright verified all ten navigation routes, KernelScope `<title>`, `/favicon.svg`, `/favicon.ico`, and `/kernelscope-mark.svg` rendering across dark and light themes, CPU Gantt ordering and `IDLE` intervals, memory resident-page order and eviction notes, Banker `SAFE` and `UNSAFE` matrices, disk `SCAN` boundary stops at cylinders `0` and `199`, persisted analytics/reports, responsive bounds at `375, 768, 1024, 1440 px`, and zero uncaught page or console errors against an isolated temporary SQLite database.
 
-Playwright tested all ten routes, CPU Gantt ordering and idle intervals, memory resident-page order and eviction notes, Banker `SAFE` and `UNSAFE` snapshots, disk SCAN boundary stops at cylinders `0` and `199`, persisted analytics and reports, dark/light theme toggling, layout bounds at 375, 768, 1024, and 1440 px, and zero uncaught console or page errors against an isolated temporary SQLite database.
+Verified baseline metrics match across `docs/REPORT.md`, `docs/CORRECTNESS_REVIEW.md`, and `evidence/baseline_verification.txt`: CPU `FCFS`/`SJF`/`RR` mean waiting times `4.75 / 4 / 5`, memory `FIFO`/`LRU`/`OPT` page faults `10 / 9 / 7`, Banker `SAFE` sequence `P1 -> P3 -> P0 -> P2 -> P4`, and disk `FCFS`/`SSTF`/`SCAN` movements `640 / 236 / 331`.
 
-Baseline numbers match across `docs/REPORT.md`, `docs/CORRECTNESS_REVIEW.md`, and `evidence/baseline_verification.txt`: CPU `FCFS`/`SJF`/`RR` mean waiting times `4.75` / `4` / `5`, memory `FIFO`/`LRU`/`OPT` page faults `10` / `9` / `7`, Banker `SAFE` order `P1 -> P3 -> P0 -> P2 -> P4`, and disk `FCFS`/`SSTF`/`SCAN` head movements `640` / `236` / `331`.
+## Exclusions and archive preservation
 
-## Untracked local artifacts
+`.gitignore` excludes `backend/.venv/`, `frontend/node_modules/`, `frontend/dist/`, `backend/data/*.db*`, `.env`, caches, runtime `.log` files, temporary Playwright output, external skill catalogs, and local `.zip` files. Both `os_resource_capstone.zip` and `os_resource_capstone_final.zip` remain untouched in the local directory.
 
-`.gitignore` keeps virtual environments (`backend/.venv/`), `frontend/node_modules/`, local SQLite files (`backend/data/*.db*`), `.env` overrides, Python/Vite/TypeScript caches, `frontend/dist/`, runtime `.log` files, Playwright scratch folders, local `.zip` archives, and external skill folders out of Git history. The project UI design reference stays tracked at `design-system/os-resource-lab/MASTER.md`.
+## Student authorship and disclosure reminders
 
-## Student handoff reminders
-
-Before submitting to a course portal, add any required student name, roll number, course code, term, or academic-integrity statements requested by your syllabus, double-check portal file naming or archive rules, and practice walking through the baseline traces and model assumptions live.
+Before submitting for academic assessment, supply your name, student ID, course code, institution, and term wherever required, include truthful citations and any required AI-assistance or authorship disclosures per institutional policy, confirm portal packaging rules, and review `docs/WEB_DEMONSTRATION.md` for the live defense.
