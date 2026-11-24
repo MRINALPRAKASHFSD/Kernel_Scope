@@ -1,31 +1,26 @@
 # Phase 5: CLI demonstration script (20 marks)
 
-This outline covers a 5 to 7 minute walkthrough of the original command-line simulator. For the full-stack browser walkthrough, screenshot map, and spoken script, see [`WEB_DEMONSTRATION.md`](WEB_DEMONSTRATION.md).
+This guide covers a 5 to 7 minute demonstration of the Bash-and-Python CLI (`run.sh` + `os_sim.cli`, integrated in `PR #4` on November 14, 2026; see [`MILESTONE_NOTES_NOV14_NOV21.md`](MILESTONE_NOTES_NOV14_NOV21.md)). For the full-stack KernelScope browser walkthrough and 6-minute talk track, see [`WEB_DEMONSTRATION.md`](WEB_DEMONSTRATION.md).
 
-## Suggested 5 to 7 minute terminal flow
+## Suggested 5 to 7 minute terminal sequence
 
-1. Spend about 45 seconds on architecture. Open `docs/DESIGN_AND_PLAN.md` and `docs/WEB_ARCHITECTURE.md`, then trace how both `run.sh` and the React/FastAPI/SQLite stack call the same `os_sim` Python functions.
-2. Take 30 seconds on CLI setup. Run `python3 --version` and `chmod +x run.sh`, noting that the CLI needs only the Python standard library while the web app uses its own isolated `backend/.venv` and `frontend/node_modules`.
-3. Spend 60 seconds in interactive menu mode. Run `./run.sh --mode menu`, pick `1` for CPU scheduling and `2` for memory replacement, and point out the Gantt segments, waiting/turnaround figures, and step-by-step page frame snapshots.
-4. Spend 60 seconds on deadlock and disk scheduling. Choose `3` to inspect the safe Banker sequence (`P1 -> P3 -> P0 -> P2 -> P4`), then `4` to compare FCFS, SSTF, and full-sweep SCAN head routes. Remind listeners that an unsafe Banker result flags potential deadlock risk rather than an active deadlock.
-5. Take 60 seconds on exported comparisons. Pick `5` and open `outputs/*.csv` alongside `outputs/*.svg` to compare SJF (mean wait 4), OPT (7 faults), and SSTF (236 cylinders) on the shared baseline.
-6. Spend 45 seconds on tests and failure handling. Show the 74 passing automated tests (30 CLI `unittest`, 9 backend `pytest`, 26 frontend `Vitest`, and 9 Playwright), then run `samples/unsafe.json` and `samples/invalid.json` to show exit status `2` and the logged validation error.
-7. Wrap up in 30 seconds by showing `README.md`, `docs/REPORT.md`, `evidence/INDEX.md`, and `docs/SUBMISSION_CHECKLIST.md`, briefly noting model assumptions and one future extension idea.
+1. Spend 45 seconds on architecture. Open `docs/DESIGN_AND_PLAN.md` and `docs/WEB_ARCHITECTURE.md`, showing how both `run.sh` and the KernelScope FastAPI/React stack call the same `os_sim/` modules.
+2. Spend 30 seconds on environment setup. Run `python3 --version` and `chmod +x run.sh`, noting that `os_sim` uses only the Python standard library while the web app isolates dependencies in `backend/.venv` and `frontend/node_modules`.
+3. Spend 60 seconds in interactive menu mode. Run `./run.sh --mode menu`, enter `1` (CPU scheduling) and `2` (page replacement), and walk through Gantt segments, waiting/turnaround numbers, and per-reference resident frame lists.
+4. Spend 60 seconds on Banker safety and disk seeks. Enter `3` to show the safe completion order (`P1 -> P3 -> P0 -> P2 -> P4`), then `4` to compare `FCFS`, `SSTF`, and full-sweep `SCAN` routes. Note that `UNSAFE` warns of potential deadlock risk rather than an active deadlock.
+5. Spend 60 seconds on exported tables and SVG charts. Enter `5`, then open `outputs/scheduling.csv`, `outputs/memory.csv`, `outputs/storage.csv`, and `outputs/*.svg` to highlight `SJF` (`4.00` mean wait), `OPT` (`7` faults), and `SSTF` (`236` cylinders) on `samples/baseline.json`.
+6. Spend 45 seconds on tests and invalid-input handling. Show the 74 passing automated tests (30 CLI `unittest`, 9 backend `pytest`, 26 frontend `Vitest`, and 9 Playwright), then run `samples/unsafe.json` and `samples/invalid.json` to demonstrate exit status `2` and `outputs/activity.log` traceback logging.
+7. Finish in 30 seconds by showing `README.md`, `docs/REPORT.md`, `evidence/INDEX.md`, and `docs/SUBMISSION_CHECKLIST.md`, stating model assumptions and one extension idea (such as preemptive `SRTF` or `C-SCAN`).
 
-## Screenshot and evidence notes
+## Evidence organization
 
-Thirteen live Chromium captures sit in `evidence/browser/` and are indexed in [`../evidence/INDEX.md`](../evidence/INDEX.md). The four PNG files directly inside `evidence/` are rasterized CLI charts and terminal output rather than browser screenshots.
+Thirteen live Chromium screenshots from KernelScope sit under `evidence/browser/` and are mapped in [`../evidence/INDEX.md`](../evidence/INDEX.md). The four PNG files directly in `evidence/` (`scheduling_chart.png`, `memory_chart.png`, `storage_chart.png`, and `terminal_trace.png`) are raster previews of CLI outputs rather than browser captures.
 
-## Likely instructor questions
+## Questions to prepare for
 
-Why run every algorithm in a module on the exact same input? Holding the workload fixed isolates the scheduling or replacement policy as the only variable changing the metric.
-
-Why did Round Robin average 5.00 waiting units while SJF averaged 4.00? Round Robin trades total wait time for fairer turn-taking across ready jobs, and this discrete simulator also omits context-switch overhead.
-
-Can Optimal page replacement run inside a real OS kernel? No. Evicting the page needed farthest in the future requires knowing upcoming memory accesses ahead of time, so OPT is strictly an offline lower bound.
-
-Does an `UNSAFE` Banker result mean the system is deadlocked? No. It only means Banker's algorithm cannot guarantee a safe completion order if every process immediately asks for its full remaining `Need`.
-
-When does SSTF cause trouble despite low total head movement? Under a steady stream of requests near the current cylinder, distant tracks can starve indefinitely.
-
-What role does `run.sh` play? It resolves the repo root regardless of the caller's working directory, checks that `python3` is installed, logs the invocation to `outputs/launcher.log`, and passes CLI flags and exit codes straight through.
+- Why run every policy in a domain on the exact same workload? Holding the input fixed isolates scheduling or replacement logic as the sole independent variable.
+- Why did `RR` record `5.00` mean wait vs. `4.00` for `SJF`? `RR` time-slices ready processes for fairness rather than minimizing completion time, and context-switch overhead is set to zero in this discrete model.
+- Can `OPT` run online in an OS kernel? No. Evicting the page referenced farthest in the future requires future knowledge, making `OPT` an offline lower-bound benchmark.
+- Does `UNSAFE` mean processes are deadlocked right now? No. It means Banker's algorithm cannot guarantee completion if every process immediately requests its remaining `Need`.
+- When can `SSTF` misbehave despite low cylinder travel? Continuous arrivals near the current head position can starve distant cylinder requests.
+- What does `run.sh` add around Python? It resolves the repository root from any caller directory, verifies `python3`, logs UTC launch arguments to `outputs/launcher.log`, and `exec`s `os_sim.cli` so exit codes propagate unchanged.
