@@ -17,7 +17,7 @@ const navigation = [
   { label: 'Memory management', path: '/memory', heading: 'Memory management' },
   { label: 'Deadlock handling', path: '/deadlock', heading: 'Deadlock handling' },
   { label: 'Storage scheduling', path: '/disk', heading: 'Disk scheduling' },
-  { label: 'About & docs', path: '/about', heading: 'About OS Resource Lab' },
+  { label: 'About & docs', path: '/about', heading: 'About KernelScope' },
 ]
 
 async function capture(page: Page, filename: string, fullPage = false) {
@@ -239,6 +239,14 @@ test('analytics and reports display the persisted integrated result', async ({ p
 
 test('theme toggle changes the rendered document theme', async ({ page }) => {
   await page.goto('/')
+  await expect(page).toHaveTitle('KernelScope')
+  await expect(page.locator('link[rel="icon"][type="image/svg+xml"]')).toHaveAttribute('href', '/favicon.svg')
+  await expect(page.locator('link[rel="icon"][type="image/x-icon"]')).toHaveAttribute('href', '/favicon.ico')
+  await expect(page.locator('.brand b')).toHaveText('KernelScope')
+  const brandMark = page.locator('.brand-mark')
+  await expect(brandMark).toBeVisible()
+  await expect(brandMark).toHaveAttribute('src', '/kernelscope-mark.svg')
+  await expect.poll(() => brandMark.evaluate(element => (element as HTMLImageElement).naturalWidth)).toBeGreaterThan(0)
   await page.getByLabel('Resource domain').selectOption('storage')
   await expect(page.getByRole('group', { name: 'Total head movement by algorithm' })).toBeVisible()
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
@@ -247,6 +255,8 @@ test('theme toggle changes the rendered document theme', async ({ page }) => {
   await page.getByRole('button', { name: 'Switch to light theme' }).click()
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
   await expect(page.locator('html')).toHaveCSS('color-scheme', 'light')
+  await expect(brandMark).toBeVisible()
+  await expect.poll(() => brandMark.evaluate(element => (element as HTMLImageElement).naturalWidth)).toBeGreaterThan(0)
   await capture(page, 'theme-light.png')
 
   await page.getByRole('button', { name: 'Switch to dark theme' }).click()

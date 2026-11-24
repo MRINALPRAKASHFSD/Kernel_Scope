@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 150" role="img" aria-label="KernelScope logo">
+  <rect width="760" height="150" rx="16" fill="#10161B"/>
+  <g transform="translate(12 11)">
+    <g fill="none" stroke="#41C7B5" stroke-width="8" stroke-linecap="square">
+      <path d="M18 42V20h22M88 20h22v22M110 86v22H88M40 108H18V86"/>
+    </g>
+    <path fill="#E9F0F2" d="M42 32h15v31l29-31h19L73 66l33 31H86L57 70v27H42z"/>
+    <path fill="#41C7B5" d="M75 70l29 27H86L66 79z"/>
+  </g>
+  <text x="158" y="96" font-size="66" font-family="Inter, Arial, Helvetica, sans-serif" letter-spacing="-2.5"><tspan font-weight="750" fill="#E9F0F2">Kernel</tspan><tspan font-weight="350" fill="#E9F0F2">Scope</tspan></text>
+</svg>

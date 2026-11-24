@@ -104,12 +104,12 @@ function Shell() {
       ref={sidebarRef}
       className={'sidebar' + (mobileOpen ? ' sidebar-open' : '')}
       role={mobileOpen ? 'dialog' : undefined}
-      aria-label="OS Resource Lab navigation"
+      aria-label="KernelScope navigation"
       aria-modal={mobileOpen || undefined}
     >
       <div className="brand">
-        <div className="brand-mark" aria-hidden="true"><Cpu size={19} /></div>
-        <div><b>OS Resource Lab</b><small>Simulation workbench</small></div>
+        <img className="brand-mark" src="/kernelscope-mark.svg" alt="" aria-hidden="true" />
+        <div><b>KernelScope</b><small>Simulation workbench</small></div>
         <button ref={closeButtonRef} className="mobile-close icon-button" aria-label="Close navigation" onClick={() => setMobileOpen(false)}><X size={18} /></button>
       </div>
       <div className="workspace-pill"><span className="workspace-dot" aria-hidden="true" /> Local workspace <ChevronDown size={14} aria-hidden="true" /></div>
@@ -143,7 +143,7 @@ function Shell() {
           aria-expanded={mobileOpen}
           onClick={openNavigation}
         ><Menu size={19} aria-hidden="true" /></button>
-        <div className="breadcrumb"><span>OS Resource Lab</span><b aria-hidden="true">/</b><strong>{titles[location.pathname] ?? 'Overview'}</strong></div>
+        <div className="breadcrumb"><span>KernelScope</span><b aria-hidden="true">/</b><strong>{titles[location.pathname] ?? 'Overview'}</strong></div>
         <div className="top-actions">
           <span className="live-badge">Local</span>
           <button
@@ -173,7 +173,7 @@ function Shell() {
         </Suspense>
       </div>
       <footer className="app-footer">
-        <span>OS RESOURCE LAB <span className="muted-separator">/</span> LOCAL SIMULATION SUITE</span>
+        <span>KERNELSCOPE <span className="muted-separator">/</span> LOCAL SIMULATION SUITE</span>
         <span>Python engine · Reproducible results</span>
       </footer>
     </main>

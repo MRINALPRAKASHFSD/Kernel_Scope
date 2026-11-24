@@ -1,14 +1,21 @@
 # Technical report: Phases 3 and 5 (20 + 20 marks)
 
-## Abstract
+## Overview
 
-This project pairs a Python-and-Bash operating-system simulator with a local full-stack web interface in the `Kernel_Scope` repository. The React and TypeScript frontend talks to FastAPI, Pydantic, SQLAlchemy, Alembic, and SQLite on the backend, while both the web API and the CLI call the same `os_sim` package for CPU scheduling, page replacement, Banker's safety checks, and disk arm scheduling. Shared datasets, strict input checks, execution logs, saved run snapshots, and CSV/JSON/SVG exports keep results reproducible across both interfaces.
+KernelScope combines a standard-library Python and Bash simulator (`os_sim/` + `run.sh`) with a local React, TypeScript, FastAPI, SQLAlchemy, Alembic, and SQLite web workbench (`start_web.sh`). Both interfaces call the same Python implementations for CPU process scheduling, virtual-memory page replacement, multi-resource Banker safety analysis, and disk arm scheduling. Shared JSON workloads, strict integer/matrix guards, activity logs, persisted input snapshots, and CSV/JSON/SVG exports keep measurements reproducible across CLI and browser runs.
 
-## Method
+## Experimental method
 
-Within each subsystem, every algorithm ran against the exact same workload so policy logic was the only changing variable. The baseline CPU workload has four arrival/burst processes with a Round Robin quantum of 2. The memory workload feeds 13 page references into 3 frames. The deadlock workload checks a 5-process, 3-resource allocation state. The disk workload schedules 8 cylinder requests starting at head 53 across 200 cylinders (`0` through `199`) with initial SCAN direction `up`. Because time units, page counts, resource vectors, and cylinders measure different things, numbers are only compared within the same domain. Running `./run.sh --mode demo` on `samples/baseline.json` produced the `outputs/*.csv` figures summarized below.
+Within each resource domain, every competing algorithm received the exact same workload snapshot:
 
-## CPU scheduling comparison (time units)
+- CPU scheduling: four processes (`P1` arrival 0 / burst 7, `P2` 2 / 4, `P3` 4 / 1, `P4` 5 / 4) with `RR` quantum `2`.
+- Memory management: 13 page references (`7, 0, 1, 2, 0, 3, 0, 4, 2, 3, 0, 3, 2`) across `3` frames.
+- Deadlock handling: 5 processes (`P0..P4`) across 3 resource types with `Available = [3, 3, 2]`.
+- Disk scheduling: 8 cylinder requests (`98, 183, 37, 122, 14, 124, 65, 67`), initial head `53`, `200` cylinders (`0..199`), and `SCAN` direction `up`.
+
+Because discrete clock ticks, page faults, resource vectors, and disk cylinders use incompatible units, comparisons are restricted to algorithms within the same domain. Baseline tables below come directly from `./run.sh --mode demo --dataset samples/baseline.json` (`outputs/*.csv`).
+
+## CPU scheduling results (time units)
 
 | Algorithm | Average waiting | Average turnaround | CPU utilization (%) | Throughput (jobs/time unit) |
 |---|---:|---:|---:|---:|
@@ -16,23 +23,23 @@ Within each subsystem, every algorithm ran against the exact same workload so po
 | Non-preemptive SJF | 4.00 | 8.00 | 100 | 0.25 |
 | RR, quantum 2 | 5.00 | 9.00 | 100 | 0.25 |
 
-On this four-job queue, non-preemptive SJF finishes with the lowest average wait (4.00) and turnaround (8.00) because short jobs (`P3` with burst 1, then `P2` and `P4` with burst 4) run ahead of longer work once `P1` finishes at time 7. FCFS keeps strict arrival order at 4.75 mean wait. Round Robin trades higher mean wait (5.00) for time-sliced turns across ready processes. All three policies hit 100% utilization and 0.25 throughput because total burst work is 16 units with no idle gaps and zero modeled context-switch cost. In a real kernel, SJF has to estimate future CPU bursts rather than know them up front, and small RR quanta pay context-switch and cache-flush overhead that this discrete clock omits.
+Non-preemptive `SJF` records the lowest mean waiting (`4.00`) and turnaround (`8.00`) on this queue: once `P1` completes at tick `7`, `P2`, `P3`, and `P4` have all arrived, and dispatching `P3` (burst `1`) ahead of the two `4`-tick jobs shortens total waiting across the remaining queue. `FCFS` dispatches strictly by arrival (`4.75` mean wait). `RR` interleaves `2`-tick slices across ready processes, raising mean completion and waiting (`5.00`) in exchange for bounded response intervals. Utilization (`100%`) and throughput (`4 / 16 = 0.25`) match across all three policies because cumulative burst time is `16` ticks with no idle gap and zero modeled context-switch cost. Real OS schedulers must predict CPU bursts for `SJF` and pay register/cache switch costs under small `RR` quanta.
 
-## Memory comparison (13 references, 3 frames)
+## Memory page replacement results (13 references, 3 frames)
 
-| Algorithm | Page faults | Hits | Fault rate (%) |
+| Policy | Page faults | Hits | Fault rate (%) |
 |---|---:|---:|---:|
 | FIFO | 10 | 3 | 76.923 |
 | LRU | 9 | 4 | 69.231 |
 | OPT | 7 | 6 | 53.846 |
 
-OPT drops faults down to 7 by evicting whichever resident page is needed farthest in the future. Because real operating systems cannot see future memory accesses, OPT serves strictly as an offline benchmark. Between the two online policies, LRU edges out FIFO (9 faults vs. 10) on this 13-reference stream by keeping recently touched pages in memory, though different access loops and frame counts can narrow or flip that gap.
+`OPT` reaches the minimum `7` faults (`53.846%`) by evicting whichever resident page has its next reference farthest ahead in the stream. Because a live kernel cannot know future memory accesses, `OPT` serves strictly as an offline lower bound. Between the two online policies, `LRU` records fewer faults than `FIFO` (`9` vs. `10`) on this workload by retaining recently accessed pages (`0`, `2`, `3`), though cyclic scans larger than frame capacity can erase `LRU`'s advantage.
 
-## Deadlock safety snapshot
+## Banker deadlock safety analysis
 
-Banker's safety check marks the baseline state `SAFE` and finds the completion order `P1 -> P3 -> P0 -> P2 -> P4`. Following that order, each process can claim its remaining `Need`, finish work, and return its held resources to the available pool. By contrast, `samples/unsafe.json` leaves `P0` and `P1` unfinished because zero free units remain while both still need one more unit. Note that an `UNSAFE` verdict flags deadlock risk under worst-case future requests rather than proving that processes are deadlocked right now.
+On `samples/baseline.json`, Banker's safety check marks the snapshot `SAFE` with completion order `P1 -> P3 -> P0 -> P2 -> P4` and final released `Work = [10, 5, 7]`. Each process in that sequence satisfies `Need[i] <= Work` when chosen and returns its `Allocation[i]` upon completion. On `samples/unsafe.json` (`Available = [0]`, `Maximum = [[2], [2]]`, `Allocation = [[1], [1]]`), Banker reports `UNSAFE` with unfinished set `["P0", "P1"]`. An `UNSAFE` verdict indicates that deadlock cannot be ruled out if processes request their full remaining `Need` simultaneously; it does not prove that a deadlock cycle already exists.
 
-## Disk scheduling comparison (cylinder movements)
+## Disk scheduling results (cylinder movements)
 
 | Algorithm | Total movement | Average movement/request |
 |---|---:|---:|
@@ -40,12 +47,14 @@ Banker's safety check marks the baseline state `SAFE` and finds the completion o
 | SSTF | 236 | 29.500 |
 | SCAN up | 331 | 41.375 |
 
-SSTF cuts head travel to 236 cylinders by picking the closest pending request each step, at the risk of starving far-away tracks if nearby requests keep arriving. Full-sweep SCAN moves upward from 53 through 183, touches the upper boundary at cylinder 199, and reverses down to 37 and 14 for 331 total cylinders of movement. Travelling to 199 costs extra distance compared with SSTF, but bounds how long opposite-end requests wait. FCFS honors arrival order and zigzags across the platter for 640 cylinders. Note that cylinder distance approximates seek mechanics on spinning platters rather than flash translation layers on SSDs.
+`SSTF` cuts total arm travel to `236` cylinders (`29.500` per request) by serving nearby cylinders (`65, 67, 37, 14`) before crossing to higher tracks (`98..183`), at the cost of potential starvation under steady local arrivals. Full-sweep `SCAN` (`up`) serves upward requests `65..183`, sweeps to physical boundary cylinder `199`, and reverses to `37` and `14` for `331` cylinders total (`41.375` per request). Counting the leg to `199` adds travel relative to `SSTF` while bounding wait times across the platter. `FCFS` follows arrival order (`640` cylinders). Note that cylinder distance models mechanical seek travel on rotational disks rather than NVMe/SSD flash addressing.
 
-## Validation, logging, and model scope
+## Verification coverage and model boundaries
 
-Automated checks cover 74 tests across four layers: 30 CLI `unittest` cases, 9 backend `pytest` tests, 26 frontend `Vitest` tests, and 9 Playwright browser tests, plus TypeScript compilation and the Vite production build. Playwright launches both local servers against a disposable SQLite file, walks all ten routes, runs each simulator, checks persisted analytics and reports, switches themes, verifies 375, 768, 1024, and 1440 px viewports, asserts zero console errors, and saves 13 screenshots in `evidence/browser/`. Malformed CLI inputs exit with status `2` and log tracebacks without writing partial exports; invalid HTTP payloads return 422 field errors and log `invalid` activity entries. Priorities, I/O wait states, dynamic process creation, page tables, live Banker request granting, and physical device latency remain outside this simulator's scope; see `docs/CORRECTNESS_REVIEW.md` and `docs/WEB_ARCHITECTURE.md`.
+KernelScope passes 74 automated tests: 30 CLI `unittest` cases, 9 backend `pytest` tests, 26 frontend `Vitest` tests, and 9 Playwright Chromium browser tests, plus `tsc -b` and `vite build`. Playwright exercises all ten routes, KernelScope titles/favicons/logos, CPU Gantt idle spans, memory resident-page evictions, safe/unsafe Banker states, `SCAN` boundary stops at `0` and `199`, persisted analytics/reports, dark/light themes, 375/768/1024/1440 px viewports, and zero console/page errors against a disposable SQLite database (`evidence/browser/*.png`).
+
+Malformed CLI inputs return exit status `2` and log tracebacks without writing partial outputs; invalid HTTP payloads return `422` field details and record `invalid` activity entries. Preemptive priorities, I/O blocking queues, page-table hardware bits, live resource-granting transitions, and physical storage timing remain outside model scope (`docs/CORRECTNESS_REVIEW.md`, `docs/WEB_ARCHITECTURE.md`).
 
 ## Summary
 
-Running competing OS policies against identical workloads makes their tradeoffs concrete in numbers and step-by-step traces: SJF trims mean wait when burst lengths are known, LRU beats FIFO on locality-heavy streams while trailing offline OPT, Banker separates safe states from risky ones, and SSTF/SCAN trade seek distance against fairness. Every chart and metric in the repo ties back to a saved input snapshot and explicit model rules.
+Evaluating competing OS policies on shared workloads exposes concrete tradeoffs in waiting time, fault rate, safety guarantees, and seek distance. Pairing summary metrics with complete execution traces lets every result in KernelScope be checked step by step against the documented model assumptions.

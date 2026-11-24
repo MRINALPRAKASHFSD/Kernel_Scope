@@ -82,7 +82,7 @@ button:focus:not(:focus-visible),a:focus:not(:focus-visible){outline:none}
 @media print{.print-report .report-raw details:not([open]) .code-block{display:block}.print-report .report-raw summary{display:none}.print-report .panel{box-shadow:none}.print-report .report-chart{break-inside:avoid}.print-report .report-section{break-inside:avoid}.print-report .report-metadata{color:#333}.print-report .report-metadata strong,.print-report .report-title h2,.print-report .report-section .subheading{color:#111}.print-report .report-copy,.print-report .report-input-summary,.print-report .report-dataset-description{color:#333}}
 
 
-/* OS Resource Lab design system: semantic foundation and responsive workbench */
+/* KernelScope design system: semantic foundation and responsive workbench */
 :root {
   --font-ui: "Fira Sans", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-data: "Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -196,13 +196,14 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible) { outline: none; }
 }
 .brand { gap: 12px; padding: 2px 8px 20px; }
 .brand-mark {
+  display: block;
   flex: 0 0 38px;
   width: 38px;
   height: 38px;
-  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line-soft));
-  border-radius: 10px;
-  background: var(--panel-soft);
-  color: var(--accent);
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  object-fit: contain;
   box-shadow: none;
 }
 .brand b { font-size: 15px; letter-spacing: -.2px; }

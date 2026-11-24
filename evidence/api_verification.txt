@@ -1,18 +1,17 @@
-OS Resource Lab — application/API browser verification
+KernelScope: application and API browser verification
 Date: 2026-11-24
 
-Status: PASS — see `docs/web_test_results.txt` for the complete current verification record.
+Status: PASS (see `docs/web_test_results.txt` for full command output).
 
-Playwright started this project's FastAPI service on 127.0.0.1:18100 and Vite on 127.0.0.1:15174. It configured an isolated temporary SQLite database and seeded the bundled dataset. The tests used actual HTTP API responses to verify:
+Playwright launched FastAPI on `127.0.0.1:18100` and Vite on `127.0.0.1:15174` against an isolated temporary SQLite database seeded with the bundled datasets. Using live HTTP responses, the suite verified:
 
-- Dashboard workspace counts, including one persisted integrated run, two datasets, ten algorithms, and zero failed runs in the isolated fixture database.
-- CPU comparison response and rendered FCFS Gantt order/timing, including generated idle spans.
-- FIFO memory trace with HIT/FAULT classifications, resident-page-order label, and actual evicted/loaded page details.
-- Banker's safe sample and unsafe sample with their real returned results.
-- SCAN route with a request at physical endpoint 199 in the upward direction and a request at physical endpoint 0 in the downward direction.
-- Analytics and Reports reading the same persisted integrated simulation.
-- Application navigation, theme switching, responsive controls, and page-level overflow checks.
+- Dashboard workspace counters (`1` integrated run, `2` datasets, `10` algorithms, `0` failed runs).
+- KernelScope `<title>`, `/favicon.svg`, `/favicon.ico`, and `/kernelscope-mark.svg` rendering in dark and light themes.
+- CPU comparison response and rendered FCFS Gantt order/timing, including synthesized `IDLE` spans.
+- FIFO memory trace with `HIT`/`FAULT` states, `Resident-page order` labeling, and evicted/loaded page notes.
+- Banker's safe and unsafe samples with their returned `Need` matrices and completion/unfinished lists.
+- `SCAN` routes with a request at upper boundary `199` (`up`) and lower boundary `0` (`down`).
+- Analytics and Reports rendering the persisted integrated simulation (`KERNELSCOPE · EXECUTION REPORT`).
+- All ten navigation routes, mobile drawer navigation, and zero horizontal overflow across `375, 768, 1024, and 1440 px` viewports.
 
-The suite also checks page errors and error-level browser console messages; none were observed. Nine Playwright browser tests passed, producing 13 authentic application screenshots in `evidence/browser/`. The tests use a disposable database and do not add runs to the user's saved simulation history.
-
-This file documents test scope and observed results; the executable checks are in `frontend/e2e/acceptance.pw.ts` and `frontend/playwright.config.ts`.
+Zero page errors or error-level browser console messages occurred across all 9 Playwright tests, updating the 13 Chromium screenshots in `evidence/browser/`. Executable assertions live in `frontend/e2e/acceptance.pw.ts` and `frontend/playwright.config.ts`.

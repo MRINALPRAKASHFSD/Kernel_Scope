@@ -68,7 +68,7 @@ wait_for_url() {
 
 wait_for_url http://127.0.0.1:8000/api/health 'Backend'
 wait_for_url http://127.0.0.1:5173/ 'Frontend'
-printf '\nOS Resource Lab is running.\n  Web app:  http://localhost:5173\n  API docs: http://localhost:8000/docs\n  Stop both servers with Ctrl+C.\n\n'
+printf '\nKernelScope is running.\n  Web app:  http://localhost:5173\n  API docs: http://localhost:8000/docs\n  Stop both servers with Ctrl+C.\n\n'
 
 while kill -0 "$BACKEND_PID" 2>/dev/null && kill -0 "$FRONTEND_PID" 2>/dev/null; do
   sleep 1
