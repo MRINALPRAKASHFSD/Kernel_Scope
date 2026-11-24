@@ -61,3 +61,12 @@ Work moved through six concrete stages:
 3. Add `run.sh` to resolve the repository root, check for `python3`, log each invocation, and forward exit codes cleanly.
 4. Build `os_sim/reporting.py` so every algorithm in a domain runs against the same workload and writes JSON traces, CSV summaries, and offline SVG bar charts.
 5. Cover normal runs, tie-breakers, malformed JSON, negative or boolean values, multi-resource Banker matrices, SCAN boundary sweeps, and log files in `tests/test_simulator.py`.
+6. Capture batch and menu runs, review measured numbers against hand traces, and assemble the final report and demo scripts.
+
+## Design tradeoffs
+
+Covering four OS subsystems goes one beyond the three-module minimum while keeping configuration in a single JSON file. Sticking to the Python standard library for `os_sim` makes CLI grading independent of `pip` or internet access, while pure functions make unit tests straightforward without mocking globals. Writing full execution traces alongside summary averages lets anyone check how a metric was produced step by step.
+
+## Web platform layer
+
+In `Kernel_Scope`, a React and TypeScript frontend talks to FastAPI over `/api`. Pydantic schemas reject bad payloads before simulation functions run, and SQLAlchemy stores datasets, input snapshots, results, and activity logs in SQLite via Alembic migrations. That web layer sits on top of `os_sim` without altering the command-line workflow; see [`WEB_ARCHITECTURE.md`](WEB_ARCHITECTURE.md) for the route and table layout.

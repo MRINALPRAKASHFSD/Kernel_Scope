@@ -41,3 +41,11 @@ Banker's safety check marks the baseline state `SAFE` and finds the completion o
 | SCAN up | 331 | 41.375 |
 
 SSTF cuts head travel to 236 cylinders by picking the closest pending request each step, at the risk of starving far-away tracks if nearby requests keep arriving. Full-sweep SCAN moves upward from 53 through 183, touches the upper boundary at cylinder 199, and reverses down to 37 and 14 for 331 total cylinders of movement. Travelling to 199 costs extra distance compared with SSTF, but bounds how long opposite-end requests wait. FCFS honors arrival order and zigzags across the platter for 640 cylinders. Note that cylinder distance approximates seek mechanics on spinning platters rather than flash translation layers on SSDs.
+
+## Validation, logging, and model scope
+
+Automated checks cover 74 tests across four layers: 30 CLI `unittest` cases, 9 backend `pytest` tests, 26 frontend `Vitest` tests, and 9 Playwright browser tests, plus TypeScript compilation and the Vite production build. Playwright launches both local servers against a disposable SQLite file, walks all ten routes, runs each simulator, checks persisted analytics and reports, switches themes, verifies 375, 768, 1024, and 1440 px viewports, asserts zero console errors, and saves 13 screenshots in `evidence/browser/`. Malformed CLI inputs exit with status `2` and log tracebacks without writing partial exports; invalid HTTP payloads return 422 field errors and log `invalid` activity entries. Priorities, I/O wait states, dynamic process creation, page tables, live Banker request granting, and physical device latency remain outside this simulator's scope; see `docs/CORRECTNESS_REVIEW.md` and `docs/WEB_ARCHITECTURE.md`.
+
+## Summary
+
+Running competing OS policies against identical workloads makes their tradeoffs concrete in numbers and step-by-step traces: SJF trims mean wait when burst lengths are known, LRU beats FIFO on locality-heavy streams while trailing offline OPT, Banker separates safe states from risky ones, and SSTF/SCAN trade seek distance against fairness. Every chart and metric in the repo ties back to a saved input snapshot and explicit model rules.

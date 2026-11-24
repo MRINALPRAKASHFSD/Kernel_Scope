@@ -39,3 +39,36 @@ The CLI and algorithm package has 30 `unittest` cases recorded in `docs/test_res
 
 All disk SCAN cases enforce the full-sweep rule: any non-empty request queue reaches `cylinders - 1` (up) or `0` (down), counts that leg in total movement, and only then reverses if requests remain on the other side.
 
+## Manual CLI checks
+
+Beyond automated tests, five quick terminal checks confirm interactive behavior:
+
+- `printf '7\n0\n' | ./run.sh --mode menu` rejects menu choice `7` and exits cleanly on `0`.
+- `./run.sh --mode demo --dataset samples/unsafe.json --output outputs/unsafe_case` prints `BANKER: UNSAFE` without crashing.
+- `./run.sh --mode demo --dataset samples/invalid.json --output outputs/invalid_case` exits with status `2` and rejects the negative arrival time.
+- Stepping through `./run.sh --mode menu` options `1` through `5` and `0` prints each module's JSON slice and updates `outputs/activity.log`.
+- Changing memory frames to `1`, RR quantum to `1`, or disk direction to `down` shifts fault counts, preemption slices, and seek totals as expected.
+
+## Reliability notes and known limits
+
+Input guards check `type(value) is int` so Python `bool` values (`True`/`False`) cannot sneak past integer checks. Duplicate PIDs, ragged Banker matrices, and out-of-range cylinders fail fast before any files are written. At the CLI boundary, `os_sim/cli.py` catches JSON, OS, key, type, and value errors, logs the traceback, and returns exit code `2`.
+
+Two practical limits are worth keeping in mind. First, writing `results.json`, three CSVs, and three SVGs is not an atomic filesystem transaction, so killing the process mid-write could leave older files next to newer ones; wipe the target folder before generating final submission artifacts. Second, the test suite targets correctness on small educational workloads rather than stress-testing tens of thousands of processes or page references.
+
+## Web, API, and browser test layers
+
+Run the web layers from the root of `Kernel_Scope`:
+
+```bash
+PYTHONPATH=. backend/.venv/bin/pytest backend/tests -q
+npm --prefix frontend test
+(cd frontend && npx tsc -b --pretty false)
+npm --prefix frontend run build
+npm --prefix frontend run test:e2e
+```
+
+The 9 backend `pytest` tests exercise `/api/health`, `/api/algorithms`, CPU and full-sweep SCAN simulation persistence, HTTP 422 validation logging in `activity_logs`, dataset CRUD across app restarts, Banker `declared_totals` validation and unsafe outcomes, integrated runs, CSV/JSON report downloads, and foreign-key cleanup when deleting runs.
+
+The 26 `Vitest` tests check input parsers, validation messages, disk route helpers, chart/report presentation logic, retry states when API requests fail, and empty states across pages.
+
+Finally, the 9 Playwright tests boot Vite and FastAPI against a temporary SQLite database, verify dashboard counters, click through all ten navigation routes, check CPU Gantt segments (including idle spans), step through memory replacements and hits, run safe and unsafe Banker cases, test disk SCAN requests at cylinders `0` and `199`, open persisted analytics and reports, toggle dark and light themes, verify zero horizontal overflow across 375, 768, 1024, and 1440 px widths, and assert zero uncaught console or page errors while capturing the 13 screenshots listed in `evidence/INDEX.md`.

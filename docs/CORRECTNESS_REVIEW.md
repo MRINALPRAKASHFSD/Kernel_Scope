@@ -51,3 +51,9 @@ Shared workload: requests `[98, 183, 37, 122, 14, 124, 65, 67]`, initial head `5
 FCFS follows queue order. SSTF greedily picks the minimum `abs(req - current_head)` and breaks ties by input index. Full-sweep SCAN serves all requests in the chosen direction, reaches the physical end of the disk (`199` going up, `0` going down) on every non-empty queue, counts that boundary leg in total movement, and reverses to clear remaining requests. Requests matching the starting head position do not add a duplicate cylinder entry, duplicate requests elsewhere stay counted individually with `0` extra movement between identical stops, and empty queues return `[head]` with `0` movement.
 
 ## Full-sweep SCAN boundary fix
+
+An earlier draft skipped the physical boundary when requests existed on only one side of the head, effectively behaving like LOOK while calling itself SCAN. `os_sim/storage.py` now completes the sweep to `0` or `cylinders - 1` on every non-empty queue, backed by regression tests for one-sided queues, two-sided queues, requests sitting directly on `0` or `199`, heads starting on `0` or `199`, duplicate requests, and empty queues.
+
+## Test and artifact status
+
+All 74 automated tests pass across the repository (30 CLI `unittest`, 9 backend `pytest`, 26 frontend `Vitest`, and 9 Playwright e2e tests), along with `tsc -b` and `vite build`. Baseline and unsafe CLI exports sit under `outputs/`, invalid CLI trace output is recorded in `docs/invalid_output_trace.txt`, CLI unit test output is in `docs/test_results.txt`, and full-stack verification logs live in `docs/web_test_results.txt` and `evidence/`.
