@@ -50,7 +50,7 @@ export default function Dashboard() {
     <PageHeader
       eyebrow="ENGINEERING WORKSPACE"
       title="Simulation workspace"
-      description="Explore resource domains, inspect saved runs, and compare algorithms on reproducible inputs."
+      description="Launch OS simulators, inspect SQLite-persisted runs, and compare algorithms on shared input snapshots."
       action={!error && <Button variant="secondary" onClick={reload}><RotateCw size={16} aria-hidden="true" /> Refresh data</Button>}
     />
     {error && <LoadError message={error} onRetry={reload} retryLabel="Retry loading dashboard" />}
