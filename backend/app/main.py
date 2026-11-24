@@ -27,7 +27,7 @@ def create_app(session_factory=SessionLocal, db_engine=engine, initialize=True):
             seed(session_factory, db_engine)
         yield
 
-    app = FastAPI(title="OS Resource Lab API", version="1.0.0", description="Persistent API over the verified os_sim Python engine", lifespan=lifespan)
+    app = FastAPI(title="KernelScope API", version="1.0.0", description="SQLite-backed REST API wrapping the os_sim Python simulation package", lifespan=lifespan)
     app.state.session_factory = session_factory
     app.state.database_engine = db_engine
     app.add_middleware(CORSMiddleware, allow_origins=CORS_ORIGINS, allow_credentials=False, allow_methods=["GET", "POST", "PUT", "DELETE"], allow_headers=["*"])

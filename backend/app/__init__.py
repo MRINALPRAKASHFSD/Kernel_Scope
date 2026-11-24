@@ -1,1 +1,1 @@
-"""OS Resource Lab API and services."""
+"""KernelScope FastAPI application and persistence services."""
