@@ -1,12 +1,12 @@
-# Algorithm correctness review
+# KernelScope: Algorithm correctness review
 
 ## Scope
 
-This document checks `os_sim`'s measured outputs on `samples/baseline.json` against independent hand calculations. Within each OS domain, every algorithm receives the exact same input snapshot. Notes on theoretical behavior explain why policies differ without replacing measured numbers.
+This review compares `os_sim`'s measured outputs on `samples/baseline.json` against independent hand-worked traces. Every policy within a domain ran on the exact same input snapshot. Theoretical notes explain why policies diverge without substituting for measured figures.
 
 ## CPU scheduling
 
-Shared workload: `P1` (arrival 0, burst 7), `P2` (arrival 2, burst 4), `P3` (arrival 4, burst 1), `P4` (arrival 5, burst 4), with Round Robin quantum `2`.
+Shared input: `P1` (`arrival=0, burst=7`), `P2` (`2, 4`), `P3` (`4, 1`), `P4` (`5, 4`), `RR` quantum `2`.
 
 | Algorithm | Measured average waiting | Measured average turnaround | Measured utilization | Measured throughput |
 |---|---:|---:|---:|---:|
@@ -14,33 +14,37 @@ Shared workload: `P1` (arrival 0, burst 7), `P2` (arrival 2, burst 4), `P3` (arr
 | SJF | 4.00 | 8.00 | 100% | 0.25 |
 | RR | 5.00 | 9.00 | 100% | 0.25 |
 
-All three policies compute `turnaround = completion - arrival` and `waiting = turnaround - burst`. FCFS sorts stably by arrival time. Non-preemptive SJF picks the shortest burst among ready processes, breaking ties by arrival time and original list position. Round Robin enqueues newly arrived jobs ahead of a job whose time slice just finished. Utilization spans from the earliest arrival (`0`) to the last completion (`16`), so any idle gap after the first arrival lowers utilization as expected.
+- `FCFS`, `SJF`, and `RR` compute `turnaround = completion - arrival` and `waiting = turnaround - burst`.
+- `FCFS` sorts stably by `(arrival, input_index)` (`0..7 P1`, `7..11 P2`, `11..12 P3`, `12..16 P4`; waits `0, 5, 7, 7` -> mean `4.75`).
+- Non-preemptive `SJF` picks minimum `(burst, arrival, input_index)` among arrived jobs (`0..7 P1`, `7..8 P3`, `8..12 P2`, `12..16 P4`; waits `0, 6, 3, 7` -> mean `4.00`).
+- `RR` enqueues arrivals with `arrival <= clock` before re-appending the preempted job (`0..2 P1`, `2..4 P2`, `4..6 P1`, `6..7 P3`, `7..9 P2`, `9..11 P4`, `11..13 P1`, `13..15 P4`, `15..16 P1`; completions `P1=16, P2=9, P3=7, P4=15`; waits `9, 3, 2, 6` -> mean `5.00`).
+- Utilization spans `max(completion) - min(arrival)` (`16 - 0 = 16`), so leading idle time before the earliest arrival does not inflate denominator ticks, while mid-schedule idle gaps lower utilization below `100%`.
 
-Why the numbers line up with theory: once `P1` finishes at `t = 7`, `P2`, `P3`, and `P4` are all waiting; running `P3` (burst 1) before the two 4-unit jobs lowers mean wait to `4.00`. Round Robin cycles slices across ready processes and finishes jobs later on average (`5.00` wait), with zero context-switch penalty modeled. Unit tests also cover late single-job arrivals, idle gaps before ready work, and SJF tie-breaking.
+## Memory page replacement
 
-## Page replacement
+Shared input: `references = [7, 0, 1, 2, 0, 3, 0, 4, 2, 3, 0, 3, 2]`, `frames = 3`.
 
-Shared workload: reference sequence `[7, 0, 1, 2, 0, 3, 0, 4, 2, 3, 0, 3, 2]` across `3` frames.
-
-| Algorithm | Measured faults | Measured hits | Fault ratio | Hit ratio |
+| Policy | Measured faults | Measured hits | Fault rate | Hit rate |
 |---|---:|---:|---:|---:|
 | FIFO | 10 | 3 | 76.923% | 23.077% |
 | LRU | 9 | 4 | 69.231% | 30.769% |
 | OPT | 7 | 6 | 53.846% | 46.154% |
 
-FIFO evicts the page that entered memory earliest, LRU evicts the resident page whose most recent access is oldest, and OPT evicts the resident page whose next reference lies farthest ahead (or never occurs again). Across every run, `hits + faults` equals `len(references)`. A separate test sequence (`[1, 2, 3, 1, 4, 1, 2]` with 3 frames) also matches hand-worked counts of FIFO `6`, LRU `5`, and OPT `4` faults. OPT sets the offline lower bound, while LRU and FIFO are online policies whose relative order depends on locality in the workload.
+- `FIFO` evicts `min(resident, key=lambda p: loaded_at[p])`.
+- `LRU` evicts `min(resident, key=lambda p: last_used[p])`, updating `last_used[page] = step` on both hits and faults.
+- `OPT` evicts `max(resident, key=lambda p: future.index(p) if p in future else float("inf"))` over `references[step + 1:]`.
+- `hits + faults == len(references)` holds across every run, and the secondary fixture `[1, 2, 3, 1, 4, 1, 2]` (3 frames) produces `FIFO=6`, `LRU=5`, `OPT=4` faults.
 
 ## Deadlock handling
 
-On `samples/baseline.json`, Banker's check returns `SAFE` with completion order `P1 -> P3 -> P0 -> P2 -> P4`.
-
-On `samples/unsafe.json` (`available = [0]`, `maximum = [[2], [2]]`, `allocation = [[1], [1]]`), it returns `UNSAFE` with no safe sequence and unfinished list `["P0", "P1"]`.
-
-Internally, `need` equals `maximum - allocation`, `work` starts as a copy of `available`, and a process only runs when every element of `need[i]` is less than or equal to `work`. When process `i` completes, its `allocation[i]` is added to `work`. Because Banker evaluates worst-case remaining demand on a static snapshot, an unsafe result warns of potential deadlock rather than proving an active cycle of blocked processes.
+- Baseline (`Available = [3, 3, 2]`, 5 processes): `SAFE`, sequence `P1 -> P3 -> P0 -> P2 -> P4`, final `Work = [10, 5, 7]`.
+- Unsafe fixture (`Available = [0]`, `Maximum = [[2], [2]]`, `Allocation = [[1], [1]]`): `UNSAFE`, `safe_sequence = None`, `unfinished = ["P0", "P1"]`.
+- `Need` is computed as `Maximum - Allocation`, and each pass picks the first unfinished row satisfying `Need[i] <= Work` component-wise.
+- Banker's check evaluates worst-case remaining demand on a static snapshot; an `UNSAFE` verdict signals deadlock risk rather than an existing deadlock cycle.
 
 ## Disk scheduling
 
-Shared workload: requests `[98, 183, 37, 122, 14, 124, 65, 67]`, initial head `53`, `200` cylinders (`0..199`), and SCAN direction `up`.
+Shared input: `requests = [98, 183, 37, 122, 14, 124, 65, 67]`, `head = 53`, `cylinders = 200`, `direction = "up"`.
 
 | Algorithm | Measured route | Measured movement | Average/request |
 |---|---:|---:|---:|
@@ -48,12 +52,15 @@ Shared workload: requests `[98, 183, 37, 122, 14, 124, 65, 67]`, initial head `5
 | SSTF | 53 -> 65 -> 67 -> 37 -> 14 -> 98 -> 122 -> 124 -> 183 | 236 | 29.500 |
 | SCAN up | 53 -> 65 -> 67 -> 98 -> 122 -> 124 -> 183 -> 199 -> 37 -> 14 | 331 | 41.375 |
 
-FCFS follows queue order. SSTF greedily picks the minimum `abs(req - current_head)` and breaks ties by input index. Full-sweep SCAN serves all requests in the chosen direction, reaches the physical end of the disk (`199` going up, `0` going down) on every non-empty queue, counts that boundary leg in total movement, and reverses to clear remaining requests. Requests matching the starting head position do not add a duplicate cylinder entry, duplicate requests elsewhere stay counted individually with `0` extra movement between identical stops, and empty queues return `[head]` with `0` movement.
+- `FCFS` appends `requests` in arrival order.
+- `SSTF` selects `min(pending, key=lambda item: (abs(item[1] - route[-1]), item[0]))`, resolving equal-distance ties by original queue index.
+- Full-sweep `SCAN` visits pending requests in the initial direction, reaches `cylinders - 1` (`up`) or `0` (`down`) on every non-empty queue, counts that boundary travel in `total_head_movement`, and reverses if opposite-side requests exist.
+- Requests equal to `head` are served at `route[0]` without a duplicate stop; duplicate requests elsewhere remain separate stops with `0` extra movement; empty queues return `[head]` with `0` movement.
 
-## Full-sweep SCAN boundary fix
+## Full-sweep SCAN boundary correction
 
-An earlier draft skipped the physical boundary when requests existed on only one side of the head, effectively behaving like LOOK while calling itself SCAN. `os_sim/storage.py` now completes the sweep to `0` or `cylinders - 1` on every non-empty queue, backed by regression tests for one-sided queues, two-sided queues, requests sitting directly on `0` or `199`, heads starting on `0` or `199`, duplicate requests, and empty queues.
+An early `storage.py` draft only appended `cylinders - 1` or `0` when requests existed on the opposite side of `head`, producing `LOOK` behavior on one-sided queues while labeling the policy `SCAN`. Commit `a17fc83` (Nov 13, 2026) updated `disk_schedule` so every non-empty `SCAN` queue sweeps to the selected physical endpoint, backed by unit and browser tests for one-sided queues, two-sided queues, boundary requests (`0` and `199`), boundary starting heads, duplicate requests, and empty queues.
 
-## Test and artifact status
+## Automated verification summary
 
-All 74 automated tests pass across the repository (30 CLI `unittest`, 9 backend `pytest`, 26 frontend `Vitest`, and 9 Playwright e2e tests), along with `tsc -b` and `vite build`. Baseline and unsafe CLI exports sit under `outputs/`, invalid CLI trace output is recorded in `docs/invalid_output_trace.txt`, CLI unit test output is in `docs/test_results.txt`, and full-stack verification logs live in `docs/web_test_results.txt` and `evidence/`.
+KernelScope passes 74 automated tests: 30 CLI `unittest` cases (`tests/test_simulator.py`), 9 FastAPI/SQLite `pytest` cases (`backend/tests/test_api.py`), 26 `Vitest` unit/component cases (`frontend/src/**/*.test.{ts,tsx}`), and 9 Playwright Chromium e2e cases (`frontend/e2e/acceptance.pw.ts`), plus `tsc -b` and `vite build`. Transcripts live in `docs/test_results.txt`, `docs/web_test_results.txt`, and `evidence/`.
