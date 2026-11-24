@@ -1,96 +1,89 @@
-# OS Resource Lab: Live demonstration guide
+# KernelScope: Live demonstration guide
 
-This guide lays out reproducible setup checks and a 6-minute live walkthrough for `Kernel_Scope`. All 13 Chromium screenshots in `evidence/browser/` come from automated Playwright runs against the real backend and are listed by route in `evidence/INDEX.md`.
+This guide provides pre-demo verification commands and a 6-minute live walkthrough of KernelScope (`MRINALPRAKASHFSD/Kernel_Scope`). All 13 Chromium screenshots in `evidence/browser/` come from Playwright running against the live FastAPI and Vite servers and are indexed in `evidence/INDEX.md`.
 
-## Pre-demo check
+## Pre-demo verification
 
-Open the `Kernel_Scope` root in VS Code, confirm Python 3.11+, Node.js/npm, and Bash are installed, and run the verification suite once before going live:
+From the repository root in VS Code, verify Python 3.11+, Node.js/npm, and Bash are available, then run the full check sequence once:
 
 ```bash
 ./run.sh --mode demo --dataset samples/baseline.json --output outputs
 python3 -m unittest discover -s tests -v
-PYTHONPATH=. backend/.venv/bin/pytest backend/tests -q
+PYTHONPATH=. backend/.venv/bin/python -m pytest backend/tests -q
 npm --prefix frontend test
 npm --prefix frontend run test:e2e
 (cd frontend && npx tsc -b --pretty false)
 npm --prefix frontend run build
 ```
 
-All 74 automated tests should pass (30 CLI, 9 backend, 26 frontend, and 9 Playwright), followed by clean TypeScript and production Vite builds. Playwright starts isolated local servers over a temporary SQLite file so your saved workspace data stays untouched. Re-run these checks anytime you edit code or sample files before presenting.
+Expected outcome: all 74 automated tests pass (30 CLI `unittest`, 9 backend `pytest`, 26 frontend `Vitest`, and 9 Playwright Chromium tests), `tsc -b` succeeds, and `vite build` completes cleanly. Playwright spins up dedicated test ports (`18100` and `15174`) over a temporary SQLite file so your saved workspace database stays untouched.
 
-## Step-by-step walkthrough in VS Code
+## Live walkthrough sequence in VS Code
 
-1. Open a terminal at the project root and launch both servers:
+1. Open a terminal at the repository root and launch KernelScope:
 
    ```bash
    ./start_web.sh
    ```
 
-   Once the script prints the local URLs, open `http://localhost:5173` (with OpenAPI docs at `http://localhost:8000/docs`). Leave this terminal running so you can point out the backend and frontend logs, and press Ctrl+C at the end to free ports 5173 and 8000.
+   Once `KernelScope is running.` prints, open `http://localhost:5173` (with FastAPI OpenAPI docs at `http://localhost:8000/docs`). Leave this terminal open to show `outputs/web-backend.log` and `outputs/web-frontend.log`; press Ctrl+C afterward to stop both processes.
 
-2. Start on the Overview dashboard (`/`). Point out the live API status pill, saved dataset and run counters, recent activity feed, and comparison chart (`evidence/browser/dashboard-dark.png`).
+2. On **Overview** (`/`), point out the KernelScope sidebar header, live Python API connection dot, SQLite counters (`Saved simulation runs`, `Available algorithms`, `Saved datasets`, `Failed simulations`), recent activity log, and domain comparison chart (`evidence/browser/dashboard-dark.png`). Toggle light and dark themes once (`evidence/browser/theme-light.png`).
 
-3. Go to CPU scheduling (`/cpu`), click `Load baseline`, and run the comparison. Switch across the `FCFS`, `SJF`, and `RR` tabs to show how the Gantt timeline, idle blocks, per-process table, and bar chart all come from the same four-process input (`evidence/browser/cpu-scheduling.png`).
+3. Open **CPU scheduling** (`/cpu`), click `Load baseline`, and click `Run comparison`. Step across the `FCFS`, `SJF`, and `RR` tabs to show the Gantt timeline (including synthesized `IDLE` spans), per-process completion/turnaround/waiting table, and comparison bar chart (`evidence/browser/cpu-scheduling.png`).
 
-4. Open Memory management (`/memory`) and run `FIFO`, `LRU`, and `OPT` on the baseline stream. Step forward and back through the reference buttons to show a hit, a fault, and which resident page got evicted (`evidence/browser/memory-resident-order.png`).
+4. Open **Memory management** (`/memory`), click `Load baseline`, and run `FIFO`, `LRU`, and `OPT`. Step through reference chips to show a `HIT`, a `FAULT`, the `Resident-page order` cards, and the evicted-page banner (`evidence/browser/memory-resident-order.png`).
 
-5. Open Deadlock handling (`/deadlock`). Load and run the safe sample first to show the `Need` matrix, completion order, and available-resource trace (`evidence/browser/banker-safe.png` and `evidence/browser/banker-safe-matrices.png`). Then load and run the unsafe sample (`evidence/browser/banker-unsafe.png`), pointing out the unfinished processes and explaining why an unsafe snapshot indicates risk rather than an active deadlock.
+5. Open **Deadlock handling** (`/deadlock`). Click `Load safe sample` and `Run safety check` to show `SAFE`, `P1 -> P3 -> P0 -> P2 -> P4`, the `Need` matrix, and post-release `Available` counts (`evidence/browser/banker-safe.png`, `evidence/browser/banker-safe-matrices.png`). Then click `Load unsafe sample` and `Run safety check` to show `UNSAFE` and unfinished `P0, P1` (`evidence/browser/banker-unsafe.png`), noting why `UNSAFE` indicates deadlock risk rather than an active deadlock.
 
-6. Open Storage scheduling (`/disk`), run a comparison, and switch to the `SCAN` tab. Point out the starting head, direction toggle, physical boundary stop (`199` when sweeping up, `0` when sweeping down), and counted movement (`evidence/browser/disk-scan-upper-boundary.png`).
+6. Open **Storage scheduling** (`/disk`), run `FCFS`, `SSTF`, and `SCAN`, and select `SCAN`. Point out the initial head, `Up`/`Down` toggle, cylinder `199` or `0` physical endpoint marker, and total cylinder movement (`evidence/browser/disk-scan-upper-boundary.png`).
 
-7. Visit Datasets (`/datasets`) to show the seeded baseline/unsafe records and validation on edit. Then open Run history (`/history`), jump into Reports (`/reports`) to download JSON or CSV (`evidence/browser/reports-persisted-results.png`), and show Analytics (`/analytics`) comparing policies from a saved run (`evidence/browser/analytics-persisted-results.png`).
+7. Visit **Datasets** (`/datasets`) to show `Bundled Baseline`, `Bundled Unsafe`, and JSON import/export. Open **Run history** (`/history`) to show stored input snapshots and replay, **Analytics** (`/analytics`) to compare policies within a stored run (`evidence/browser/analytics-persisted-results.png`), and **Reports** (`/reports`) to show the `KERNELSCOPE · EXECUTION REPORT` view plus JSON/CSV downloads (`evidence/browser/reports-persisted-results.png`).
 
-8. In a second terminal, run the CLI batch commands to show that the Bash and Python path produces the exact same numbers:
+8. In a second terminal, run the CLI commands to show identical results from the Bash/Python path:
 
    ```bash
    ./run.sh --mode demo --dataset samples/baseline.json --output outputs
    ./run.sh --mode demo --dataset samples/unsafe.json --output outputs/unsafe_case
-   ```
-
-   Next, run the corrupted sample to demonstrate exit code `2` and stderr reporting:
-
-   ```bash
    ./run.sh --mode demo --dataset samples/invalid.json --output outputs/invalid_case
    ```
 
-   If time permits, run `./run.sh --mode menu` and enter `0` to show interactive mode exiting cleanly.
+   Point out exit status `2` and `ERROR: arrival must be an integer >= 0` on `invalid.json`, then open `outputs/scheduling.svg`, `outputs/memory.svg`, and `outputs/storage.svg`.
 
-9. Open `outputs/scheduling.svg`, `outputs/memory.svg`, and `outputs/storage.svg` to show the standalone CLI charts alongside the web app.
+## Browser screenshot notes
 
-## Notes on captured browser screenshots
+Playwright captures 13 PNGs in `evidence/browser/` from live API responses, including dark/light themes and `375 px` / `1440 px` viewports, while also checking `768 px` and `1024 px` across all ten routes. Run `npm --prefix frontend run test:e2e` anytime UI styles or labels change to keep those screenshots synchronized.
 
-Playwright writes 13 PNG files into `evidence/browser/` while testing the live app, covering the dark/light dashboard, CPU Gantt view, memory replacement trace, safe and unsafe Banker runs, disk SCAN upper-boundary request, persisted analytics and reports, and 375 px plus 1440 px viewports. The e2e suite also checks 768 px and 1024 px across all ten routes to catch clipped controls or horizontal scrollbars. Running `npm --prefix frontend run test:e2e` regenerates all 13 captures cleanly.
+## 6-minute spoken script
 
-## Spoken walkthrough script (around 6 minutes)
+### 0:00 to 0:40: Architecture and shared engine
 
-### 0:00 to 0:40: Project goal and shared engine
+"This is KernelScope, an operating-system resource simulation and algorithm analytics workbench. It pairs our standard-library Python and Bash simulator with a local React, TypeScript, FastAPI, and SQLite web interface. Both the CLI and the web API call the exact same functions inside `os_sim/`, so none of the scheduling, paging, deadlock, or disk calculations are duplicated in JavaScript."
 
-"This is OS Resource Lab inside the `Kernel_Scope` repository. It combines our Python-and-Bash operating-system simulator with a local React, TypeScript, FastAPI, and SQLite web application. Both interfaces call the exact same functions inside `os_sim/`, so none of the scheduling, paging, deadlock, or disk math is reimplemented in the browser."
+### 0:40 to 1:10: API validation and SQLite snapshots
 
-### 0:40 to 1:10: Validation and SQLite storage
-
-"When I submit a workload in the UI, Pydantic validates types, bounds, and matrix dimensions at the API boundary. The backend service calls `os_sim`, stores both the raw input snapshot and computed trace in SQLite, and sends that saved record back to React. Alembic manages the schema, and startup seeding loads baseline and unsafe examples automatically."
+"When the browser submits a workload, Pydantic checks types, unique IDs, matrix shapes, and cylinder bounds before execution. FastAPI calls `os_sim`, writes both the raw input snapshot and computed trace into SQLite, and returns that stored record to React. Alembic manages the schema migration, and startup seeding loads our baseline and unsafe fixtures automatically."
 
 ### 1:10 to 2:00: CPU scheduling
 
-"On the CPU page, I'm running FCFS, non-preemptive SJF, and Round Robin with quantum 2 against the same four processes. The Gantt bar comes straight from the Python trace, including any idle intervals. Below it, we get per-process completion, turnaround, and waiting times, where SJF reaches the lowest mean wait of 4 time units on this workload."
+"On the CPU workbench, FCFS, non-preemptive SJF, and Round Robin with quantum 2 run against the same four processes. The Gantt bar renders backend dispatch intervals and inserts explicit `IDLE` blocks whenever the CPU waits for the next arrival. On this baseline, SJF reaches the lowest mean waiting time of 4 time units by running `P3` ahead of the two 4-unit jobs once `P1` completes."
 
 ### 2:00 to 2:45: Memory page replacement
 
-"In Memory management, FIFO, LRU, and Optimal process the same 13-page reference stream across 3 frames. Stepping through individual references shows the resident page order, whether the access was a hit or fault, and which page was evicted. Optimal hits 7 faults by looking ahead at future references, so the UI marks it as an offline benchmark rather than a live kernel policy."
+"In Memory management, FIFO, LRU, and Optimal step through 13 page references across 3 frames. Clicking any reference shows the resident page order, whether the access hit or faulted, and which page was evicted. Optimal drops faults to 7 using future lookahead, so the UI explicitly labels it as an offline benchmark rather than a live kernel policy."
 
-### 2:45 to 3:35: Banker's safety check
+### 2:45 to 3:35: Banker's safety analysis
 
-"On the Deadlock screen, Banker's algorithm subtracts Allocation from Maximum to get Need and checks whether processes can finish using currently available units. The safe sample finishes in order `P1, P3, P0, P2, P4`, releasing allocations at each step. Switching to the unsafe sample leaves `P0` and `P1` unfinished. That unsafe status means we cannot guarantee deadlock avoidance under worst-case requests, not that the processes are deadlocked right now."
+"On Deadlock handling, Banker's algorithm computes `Need = Maximum - Allocation` and checks whether processes can finish within `Available` resources. The baseline snapshot completes safely in order `P1, P3, P0, P2, P4`. Loading the unsafe sample leaves `P0` and `P1` unfinished. That `UNSAFE` badge means deadlock avoidance cannot be guaranteed under worst-case requests, not that processes are deadlocked right now."
 
 ### 3:35 to 4:20: Disk arm scheduling
 
-"On the Disk page, FCFS, SSTF, and SCAN run over the same cylinder queue. SSTF cuts total movement to 236 cylinders here, while full-sweep SCAN travels to cylinder 199 before reversing downward for 331 cylinders. Notice how the route chart distinguishes requested stops from SCAN's physical boundary turn and counts the boundary sweep in total movement."
+"On Disk scheduling, FCFS, SSTF, and full-sweep SCAN run on the same 8-request queue starting at head 53. SSTF lowers travel to 236 cylinders, while upward SCAN sweeps through cylinder 199 before reversing to 37 and 14 for 331 cylinders. The route chart uses distinct markers so requested cylinders and physical SCAN endpoints remain clear even when a request lands directly on cylinder 0 or 199."
 
-### 4:20 to 5:10: Datasets, history, analytics, and exports
+### 4:20 to 5:10: Datasets, history, analytics, and reports
 
-"Every run saves its own input snapshot, so editing or deleting a dataset later never breaks historical reports. From History, Analytics, and Reports, I can reopen past runs, compare policies that shared an identical input fingerprint, or export results as JSON and CSV, matching the CLI's JSON, CSV, and SVG files."
+"Every simulation run stores its own input snapshot, so editing or deleting a dataset later never invalidates older reports. From History, Analytics, and Reports, I can replay a stored snapshot, compare policies sharing an input fingerprint, print a KernelScope execution summary, or export JSON and CSV alongside the CLI's SVG charts."
 
-### 5:10 to 6:00: Testing and wrap-up
+### 5:10 to 6:00: Verification and wrap-up
 
-"Reliability is backed by 74 automated tests: 30 CLI `unittest` cases, 9 backend `pytest` tests, 26 `Vitest` tests, and 9 Playwright browser tests across ten routes and four screen widths, plus clean TypeScript and production builds. Invalid inputs fail with status 2 in the CLI or 422 in the API without creating bad run records. That covers all five project phases from initial design through verification."
+"Reliability is verified by 74 passing automated tests across four layers: 30 CLI `unittest` cases, 9 backend `pytest` tests, 26 `Vitest` tests, and 9 Playwright Chromium tests across ten routes and four viewport widths, plus clean TypeScript and production builds. Malformed CLI inputs exit with code 2, and invalid API requests log rejected activity with HTTP 422 without creating completed runs."
