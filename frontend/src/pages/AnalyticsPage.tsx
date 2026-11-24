@@ -65,10 +65,10 @@ export default function AnalyticsPage() {
     movement: item.total_head_movement,
   })) : []
 
-  if (loading) return <><PageHeader title="Algorithm analytics" description="Compare actual persisted results from compatible inputs." /><Loading /></>
-  if (error) return <><PageHeader title="Algorithm analytics" description="Compare actual persisted results from compatible inputs." /><LoadError message={error} onRetry={loadRuns} retryLabel="Retry loading analytics" /></>
+  if (loading) return <><PageHeader title="Algorithm analytics" description="Compare algorithms executed against the same saved input snapshot." /><Loading /></>
+  if (error) return <><PageHeader title="Algorithm analytics" description="Compare algorithms executed against the same saved input snapshot." /><LoadError message={error} onRetry={loadRuns} retryLabel="Retry loading analytics" /></>
   return <>
-    <PageHeader eyebrow="ANALYTICS / COMPARISONS" title="Algorithm analytics" description="Inspect measured outcomes from saved runs. Each comparison uses one recorded input snapshot." />
+    <PageHeader eyebrow="ANALYTICS / COMPARISONS" title="Algorithm analytics" description="Compare measured policy metrics within a completed run that shares one recorded input snapshot." />
     <div className="analytics-filters">
       <SelectField label="Resource domain" value={category} onChange={event => { setCategory(event.target.value); setRunId('') }}>
         {domains.map(item => <option key={item.key} value={item.key}>{item.label}</option>)}
