@@ -1,21 +1,43 @@
-MIT License
+PROPRIETARY LICENSE (ALL RIGHTS RESERVED)
 
-Copyright (c) 2026 Mrinal Prakash
+Copyright (c) 2026 Mrinal Prakash (@MRINALPRAKASHFSD). All Rights Reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+1. OWNERSHIP
+This software, source code, user interface design, brand assets ("KernelScope"),
+architecture, test suites, sample workloads, and accompanying documentation
+(collectively, the "Software") are the sole and exclusive property of
+Mrinal Prakash.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+2. NO GRANT OF LICENSE
+No license, right, title, or interest in or to the Software is granted to any
+person or entity, whether by implication, estoppel, or otherwise. Without the
+prior express written permission of Mrinal Prakash, you may NOT:
 
+  a) Use, run, execute, host, or deploy the Software for any commercial,
+     production, institutional, or personal purpose;
+  b) Copy, clone, reproduce, mirror, or redistribute the Software, in whole
+     or in part, in source or binary form;
+  c) Fork, modify, adapt, translate, reverse-engineer, or create derivative
+     works based upon the Software;
+  d) Sublicense, sell, lease, rent, lend, or otherwise transfer the Software
+     or access to it to any third party;
+  e) Submit, publish, or claim all or any portion of the Software or its
+     documentation as your own academic, coursework, or professional work; or
+  f) Incorporate the Software into datasets or pipelines for training or
+     fine-tuning third-party products without written consent.
+
+3. ACADEMIC INSPECTION AND PLATFORM HOSTING
+Authorized course instructors, Teaching Assistants, and designated evaluators
+may inspect and execute the Software solely for the purpose of evaluating the
+author's work. Hosting this repository publicly on GitHub does not waive
+copyright or grant any open-source license beyond the minimum platform-level
+viewing mechanics required by GitHub's Terms of Service while public.
+
+4. DISCLAIMER OF WARRANTY AND LIMITATION OF LIABILITY
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+IMPLIED. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM,
+DAMAGES, OR OTHER LIABILITY ARISING FROM, OUT OF, OR IN CONNECTION WITH THE
 SOFTWARE.
+
+For licensing or permission inquiries, contact Mrinal Prakash via GitHub
+(https://github.com/MRINALPRAKASHFSD).
