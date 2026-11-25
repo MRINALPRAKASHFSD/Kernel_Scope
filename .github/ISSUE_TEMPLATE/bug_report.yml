@@ -1,0 +1,36 @@
+name: Bug report
+description: Report an algorithm trace discrepancy, CLI failure, API error, or UI bug
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: layer
+    attributes:
+      label: Affected layer
+      options:
+        - CLI / os_sim Python engine
+        - FastAPI backend / SQLite persistence
+        - React / TypeScript web interface
+        - Documentation / scripts
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps or input JSON
+      description: Paste the exact CLI command, API payload, or workload JSON that triggers the issue.
+      placeholder: "./run.sh --mode demo --dataset samples/baseline.json"
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed vs. expected output
+      description: Include measured values, exit status, or error messages alongside the hand-calculated expectation.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: OS, Python, and Node versions
+      placeholder: "macOS 15, Python 3.12, Node 22"
