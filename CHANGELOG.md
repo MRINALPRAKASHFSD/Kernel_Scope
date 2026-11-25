@@ -7,7 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
-- Repository governance and community standards: `LICENSE` (MIT), `SECURITY.md`, `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`, `CITATION.cff`, `.editorconfig`, GitHub issue/PR templates, and `.github/workflows/ci.yml`.
+- Repository governance, proprietary copyright protection, and CI workflows: `LICENSE` (Proprietary / All Rights Reserved), `SECURITY.md`, `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`, `CITATION.cff`, `.editorconfig`, GitHub issue/PR templates, and `.github/workflows/ci.yml`.
 - Redesigned `README.md` with KernelScope logo header, CI and stack badges, live UI screenshot gallery, Mermaid system diagram, policy specification tables, and contributor links.
 
 ## [1.0.0] - 2026-11-24
