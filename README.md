@@ -1,131 +1,250 @@
-# KernelScope
+<div align="center">
 
-KernelScope (`MRINALPRAKASHFSD/Kernel_Scope`) is an operating-system resource simulation and algorithm analytics workbench built around a shared Python engine (`os_sim/`). You can run simulations from a terminal through the Bash-and-Python CLI (`run.sh`) or through a local React, TypeScript, FastAPI, and SQLite web interface (`start_web.sh`). Both entry points execute the exact same Python functions in `os_sim/`, so CPU scheduling, page replacement, Banker safety checks, and disk seek routes are never reimplemented in JavaScript.
+<img src="frontend/public/kernelscope-logo.svg" alt="KernelScope" width="430" />
 
-## System requirements and CLI setup
+### Operating-system resource simulation and algorithm analytics workbench
 
-The command-line simulator requires Python 3.9+, Bash, and a terminal. It uses only the Python standard library.
+[![CI](https://github.com/MRINALPRAKASHFSD/Kernel_Scope/actions/workflows/ci.yml/badge.svg)](https://github.com/MRINALPRAKASHFSD/Kernel_Scope/actions/workflows/ci.yml)
+![Tests](https://img.shields.io/badge/tests-74%20passing-2ea043)
+![Python](https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white)
+![TypeScript](https://img.shields.io/badge/typescript-5.8-3178C6?logo=typescript&logoColor=white)
+![React](https://img.shields.io/badge/react-18.3-149ECA?logo=react&logoColor=white)
+![FastAPI](https://img.shields.io/badge/fastapi-REST%20API-009688?logo=fastapi&logoColor=white)
+![SQLite](https://img.shields.io/badge/sqlite-Alembic-003B57?logo=sqlite&logoColor=white)
+[![License: MIT](https://img.shields.io/badge/license-MIT-41C7B5)](LICENSE)
 
-The web workbench requires Python 3.11+ and Node.js with npm. Everything runs locally on `127.0.0.1` without external services or API keys. Check your installed versions with `python3 --version` and `bash --version`.
+[Quick Start](#quick-start) · [Workbench Preview](#workbench-preview) · [Architecture](#architecture) · [Algorithms & Policies](#algorithms-and-policy-rules) · [API Reference](#rest-api-endpoints) · [Testing](#testing-and-verification) · [Documentation](#documentation-and-policies)
 
-macOS, Linux, and WSL run `run.sh` and `start_web.sh` directly. On Windows PowerShell without Bash, invoke `python -m os_sim.cli --mode demo` directly; Bash launcher verification requires Bash, WSL, or Git Bash.
+</div>
 
-From the repository root:
+---
+
+## Overview
+
+**KernelScope** pairs a dependency-free Python and Bash command-line simulator (`os_sim/` + `run.sh`) with a local React, TypeScript, FastAPI, and SQLite web workbench (`start_web.sh`). Both entry points execute the exact same Python functions inside `os_sim/`, so CPU scheduling, virtual-memory page replacement, multi-resource Banker safety analysis, and disk seek routes are never duplicated in JavaScript.
+
+Every simulation run validates its input contract up front, stores an immutable JSON snapshot of the submitted workload alongside the computed step-by-step trace in SQLite, and exports reproducible results as JSON, CSV tables, printable execution summaries, and standalone SVG bar charts.
+
+| Subsystem | Implemented policies | Primary metrics and trace outputs |
+|---|---|---|
+| **CPU Scheduling** | Arrival-aware `FCFS`, non-preemptive `SJF`, `Round Robin` (`RR`) | Gantt dispatch intervals with `IDLE` spans, per-process completion / turnaround / waiting, CPU utilization, throughput |
+| **Memory Management** | `FIFO`, `LRU`, offline `Optimal` (`OPT` benchmark) | Step-by-step resident-page order, `HIT` / `FAULT` classification, evicted-page tracking, hit and fault rates |
+| **Deadlock Handling** | Multi-resource `Banker's Safety Algorithm` | Derived `Need` matrix, `SAFE` / `UNSAFE` verdict, safe completion order (or unfinished set), post-release `Work` trace |
+| **Disk Scheduling** | `FCFS`, `SSTF`, full-sweep `SCAN` (`up` / `down`) | Ordered cylinder route, physical `SCAN` boundary stops (`0` and `cylinders - 1`), total and per-request head movement |
+| **Workspace & Exports** | Dataset CRUD, Run History, Analytics, Printable Reports | SQLite snapshots, SHA-256 same-input comparison groups, one-click replay, JSON / CSV / SVG exports |
+
+---
+
+## Workbench preview
+
+<div align="center">
+  <img src="evidence/browser/dashboard-dark.png" alt="KernelScope simulation workspace overview" width="100%" />
+  <p><sub>Overview dashboard displaying live SQLite counters, simulator launch cards, recent activity, and within-run policy comparisons.</sub></p>
+</div>
+
+| CPU Scheduling (`/cpu`) | Memory Management (`/memory`) |
+|---|---|
+| ![CPU Gantt timeline](evidence/browser/cpu-scheduling.png) | ![Memory resident-page trace](evidence/browser/memory-resident-order.png) |
+| Backend Gantt timeline with synthesized `IDLE` spans and waiting/turnaround metrics. | Step-through resident-page order, `HIT`/`FAULT` chips, and evicted-page tracking. |
+
+| Banker Safety (`/deadlock`) | Disk Arm Scheduling (`/disk`) |
+|---|---|
+| ![Banker safe sequence](evidence/browser/banker-safe.png) | ![Disk SCAN boundary route](evidence/browser/disk-scan-upper-boundary.png) |
+| Multi-resource `SAFE` sequence (`P1 -> P3 -> P0 -> P2 -> P4`) and post-release `Work` trace. | Full-sweep `SCAN` route distinguishing request stops from cylinder `199` boundary turns. |
+
+<details>
+<summary><strong>View Analytics, Printable Reports, Light Theme, and Mobile (375 px) captures</strong></summary>
+<br />
+
+| Persisted Analytics (`/analytics`) | Execution Reports (`/reports`) |
+|---|---|
+| ![Analytics view](evidence/browser/analytics-persisted-results.png) | ![Execution report view](evidence/browser/reports-persisted-results.png) |
+
+| Light Theme (`data-theme="light"`) | Mobile Drawer & Responsive Layout (`375 px`) |
+|---|---|
+| ![Light theme dashboard](evidence/browser/theme-light.png) | ![Mobile 375px view](evidence/browser/responsive-375.png) |
+
+Full mapping of all 13 Playwright Chromium captures lives in [`evidence/INDEX.md`](evidence/INDEX.md).
+
+</details>
+
+---
+
+## Architecture
+
+```mermaid
+flowchart TD
+    subgraph Client["Browser Workbench (React 18 + TypeScript + Vite)"]
+        UI["10 Route Pages + Recharts + Theme Shell"]
+        API_CLIENT["Typed Fetch Client (/api proxy)"]
+        UI --> API_CLIENT
+    end
+
+    subgraph Server["Backend Service (FastAPI + SQLAlchemy 2.0)"]
+        ROUTES["FastAPI Routes + Pydantic v2 Schemas"]
+        SERVICES["Execution Services + SHA-256 Snapshot Grouping"]
+        DB[("SQLite + Alembic\n(datasets, simulation_runs, activity_logs)")]
+        ROUTES --> SERVICES
+        SERVICES --> DB
+    end
+
+    subgraph Core["Shared Simulation Engine (os_sim/ Python Standard Library)"]
+        VALID["validation.py\n(strict int & matrix guards)"]
+        MODS["scheduling.py · memory.py\ndeadlock.py · storage.py"]
+        REPORT["reporting.py\n(JSON + CSV + 720x310 SVG)"]
+        MODS --> VALID
+        REPORT --> MODS
+    end
+
+    subgraph Terminal["CLI Entrypoint"]
+        SH["run.sh -> os_sim/cli.py\n(--mode demo | --mode menu)"]
+    end
+
+    API_CLIENT -->|HTTP JSON| ROUTES
+    SERVICES -->|Direct Python import| MODS
+    SERVICES -->|Integrated run| REPORT
+    SH --> REPORT
+```
+
+### Technology stack
+
+| Layer | Technologies | Notes |
+|---|---|---|
+| **Simulation Core** | Python `3.9+` standard library (`os_sim/`) | Pure functions (`scheduling`, `memory`, `deadlock`, `storage`, `reporting`, `validation`) |
+| **CLI & Launchers** | Bash (`run.sh`, `start_web.sh`), `argparse`, `logging` | Portable root resolution, UTC launch logs, exit code `2` on invalid input |
+| **Backend API** | Python `3.11+`, FastAPI, Pydantic v2, Uvicorn | Strict request validation, `422` activity logging, CSV/JSON report streaming |
+| **Persistence** | SQLite, SQLAlchemy 2.0, Alembic (`0001_initial.py`) | Foreign-key enforcement, immutable `input_snapshot` records, idempotent startup seed |
+| **Frontend UI** | React `18.3`, TypeScript `5.8`, Vite `6.4`, Tailwind CSS, Recharts, Lucide | Dark/light token system (`Fira Sans` + `Fira Code`), 4-viewport responsive layout |
+| **Automated QA** | `unittest` (30), `pytest` (9), `Vitest` (26), Playwright Chromium (9), GitHub Actions | 74 automated tests across CLI, REST/DB, component, and real browser layers |
+
+---
+
+## Quick start
+
+### Prerequisites
+
+- **CLI only**: Python `3.9+`, Bash, and a terminal (zero third-party `pip` packages required).
+- **Full-stack web workbench**: Python `3.11+`, Node.js `20+` with `npm`, and Bash (macOS, Linux, or WSL; Windows PowerShell can run `python -m os_sim.cli --mode demo` directly).
+
+### 1. Run the command-line simulator
 
 ```bash
+git clone https://github.com/MRINALPRAKASHFSD/Kernel_Scope.git
+cd Kernel_Scope
+
 chmod +x run.sh
 ./run.sh --mode demo --dataset samples/baseline.json --output outputs
 ./run.sh --mode menu
-python3 -m unittest discover -s tests -v
 ```
 
-Interactive menu mode loads `samples/baseline.json` by default. Option `6` switches to a different JSON path, and option `5` exports all JSON, CSV, and SVG files at once. In batch mode, pass `--dataset path/to/file.json` to evaluate another workload without editing source files.
+| Menu key | Action |
+|---|---|
+| `1` | Run shared analysis and print **CPU scheduling** Gantt intervals and metrics |
+| `2` | Run shared analysis and print **Memory page replacement** step traces and fault rates |
+| `3` | Run shared analysis and print **Banker's safety** `Need` matrix and sequence |
+| `4` | Run shared analysis and print **Disk scheduling** cylinder routes and movement totals |
+| `5` | Run all 10 policies and export `results.json`, `*.csv`, and `*.svg` into `outputs/` |
+| `6` | Switch active JSON dataset path (validated on execution) |
+| `0` | Exit cleanly (`Goodbye`) |
 
-## Running the web workbench
+### 2. Launch the full-stack web workbench
 
-The web interface adds SQLite dataset storage, saved simulation runs, request/execution activity logs, within-run policy comparisons, and JSON or CSV downloads. Running `start_web.sh` creates `backend/.venv` if missing, installs backend and frontend packages locally, applies the Alembic schema migration, and starts Uvicorn and Vite without touching your system Python packages.
+`start_web.sh` creates `backend/.venv` if missing, installs backend and frontend packages locally, applies `alembic upgrade head`, and starts both servers on loopback (`127.0.0.1`):
 
 ```bash
+chmod +x start_web.sh
 ./start_web.sh
-# Web UI: http://localhost:5173
-# OpenAPI docs: http://localhost:8000/docs
-# Stop both servers with Ctrl+C
 ```
 
-Manual two-terminal startup:
+- **Web Workbench**: http://localhost:5173
+- **Interactive OpenAPI Docs**: http://localhost:8000/docs
+- Stop both servers cleanly with `Ctrl+C`.
+
+<details>
+<summary><strong>Manual two-terminal startup and environment variables (.env)</strong></summary>
 
 ```bash
 python3 -m venv backend/.venv
 backend/.venv/bin/python -m pip install -r backend/requirements.txt
-npm --prefix frontend install
-cp .env.example .env   # optional; defaults work without .env
+npm --prefix frontend ci
+cp .env.example .env   # optional; defaults work out of the box
+
 PYTHONPATH=. backend/.venv/bin/alembic -c backend/alembic.ini upgrade head
 PYTHONPATH=. backend/.venv/bin/uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
-# Second terminal:
+
+# In a second terminal:
 npm --prefix frontend run dev -- --host 127.0.0.1
 ```
 
-By default, SQLite stores data at `backend/data/os_resource_lab.db` (keeping the original internal filename for Alembic compatibility) and seeds `Bundled Baseline` plus `Bundled Unsafe` once on an empty database. Override `DATABASE_URL` or `CORS_ORIGINS` in `.env` when needed. FastAPI binds to `127.0.0.1:8000` and Vite binds to `127.0.0.1:5173`, proxying `/api` calls to FastAPI.
-
-Inspect or apply Alembic migrations directly:
-
-```bash
-PYTHONPATH=. backend/.venv/bin/alembic -c backend/alembic.ini upgrade head
-PYTHONPATH=. backend/.venv/bin/alembic -c backend/alembic.ini current
-```
-
-The schema migration lives at `backend/alembic/versions/0001_initial.py`. Local `.db`, `-wal`, and `-shm` files stay untracked in Git.
-
-Run the backend, frontend, TypeScript, production build, and browser suites with:
-
-```bash
-PYTHONPATH=. backend/.venv/bin/python -m pytest backend/tests -q
-npm --prefix frontend test
-(cd frontend && npx tsc -b --pretty false)
-npm --prefix frontend run build
-npm --prefix frontend run test:e2e
-```
-
-Further documentation: [docs/WEB_ARCHITECTURE.md](docs/WEB_ARCHITECTURE.md), [docs/WEB_DEMONSTRATION.md](docs/WEB_DEMONSTRATION.md), [docs/DEMONSTRATION.md](docs/DEMONSTRATION.md), and the retrospective milestone review in [docs/MILESTONE_NOTES_NOV14_NOV21.md](docs/MILESTONE_NOTES_NOV14_NOV21.md).
-
-## Simulation modules and CLI menu
-
-| Menu | Domain | Implemented policies and computed outputs |
+| Variable | Default | Purpose |
 |---|---|---|
-| 1 | Process scheduling | Arrival-aware `FCFS`, non-preemptive `SJF`, `RR`; Gantt segments, per-process completion/turnaround/waiting, means, CPU utilization, throughput |
-| 2 | Memory management | `FIFO`, `LRU`, offline `OPT`; step-by-step resident-page trace, page hits, page faults, hit/fault percentages |
-| 3 | Deadlock handling | Multi-resource Banker safety check; `Need` matrix, safe completion sequence (or unfinished list), post-release `Work` trace |
-| 4 | Storage scheduling | `FCFS`, `SSTF`, full-sweep `SCAN`; visited cylinder route, total head movement, mean movement per request |
-| 5 | Integrated reporting | Execute all 10 policies across one dataset; write CSV tables, standalone SVG bar charts, and `results.json` |
-| 6 | Dataset selection | Point the session at another JSON file (validated on run) |
-| 0 | Exit | Quit cleanly |
+| `DATABASE_URL` | `sqlite:///.../backend/data/os_resource_lab.db` | SQLAlchemy connection URL (retains original filename for Alembic compatibility) |
+| `CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | Comma-separated origins permitted by FastAPI CORS middleware |
 
-`run.sh` resolves the repository root, verifies `python3`, appends a UTC line to `outputs/launcher.log`, and invokes `python3 -m os_sim.cli`. Picking menu options `1` through `5` runs the shared `write_report` pass before printing the chosen domain slice so exported files in `outputs/` always match the latest terminal run. Runtime events and exception tracebacks go to `outputs/activity.log`.
+</details>
 
-## Input contract and algorithm rules
+---
 
-[`samples/baseline.json`](samples/baseline.json) defines the integrated JSON contract. Every integrated file requires four keys: `processes`, `memory`, `deadlock`, and `storage`, plus optional top-level `quantum` and storage `direction` (`up` or `down`). All times, page numbers, resource counts, and cylinder numbers must be strict Python `int` values (`bool` values are rejected even though `bool` subclasses `int` in Python). CPU bursts, RR quantum, frame capacity, and cylinder count must each be `>= 1`; arrival times, page numbers, and resource entries must be `>= 0`; disk head and requests must fall in `[0, cylinders - 1]`. Process IDs must be unique non-empty strings, and Banker matrices (`available`, `maximum`, `allocation`) must match dimensions with `allocation[i][j] <= maximum[i][j]`.
+## Algorithms and policy rules
 
-Algorithmic rules are fixed so policy differences come strictly from scheduling or replacement decisions:
+### Input validation contract
 
-- CPU scheduling models one core with integer clock ticks, no priorities, and zero context-switch cost. `FCFS` sorts stably by `(arrival, input_index)`. Non-preemptive `SJF` picks the minimum `(burst, arrival, input_index)` among arrived jobs, advancing the clock to the next arrival when the ready set is empty. `RR` runs up to `quantum` ticks per turn and enqueues newly arrived jobs (`arrival <= clock`) before re-appending the preempted job.
-- Memory page replacement tracks `FIFO` by load step and `LRU` by most recent access step. `OPT` inspects `references[step + 1:]` and evicts the resident page needed farthest ahead (or `inf` if never referenced again), acting strictly as an offline lower-bound benchmark.
-- Deadlock handling evaluates a static resource snapshot using `need = maximum - allocation` and iterative work release. An `UNSAFE` result means Banker's test cannot guarantee deadlock-free completion under worst-case remaining requests; it does not prove processes are currently deadlocked.
-- Disk scheduling counts `abs(route[k + 1] - route[k])` in cylinders without rotational latency or SSD translation layers. `SSTF` breaks equal-distance ties by original input index. On any non-empty request queue, `SCAN` sweeps all the way to `cylinders - 1` (`up`) or `0` (`down`), counts that boundary leg in total movement, and then reverses for remaining requests. Requests matching the starting head are served in place without a duplicate stop, and an empty queue stays at `[head]` with `0` movement.
+Integrated JSON datasets (see [`samples/baseline.json`](samples/baseline.json)) require four top-level keys: `processes`, `memory`, `deadlock`, and `storage`, with optional `quantum` and disk `direction` (`"up"` or `"down"`).
 
-## Generated outputs and verification artifacts
+- **Strict integer guard**: `os_sim/validation.py` checks `type(value) is int`, rejecting Python `bool` values (`True` / `False`) even though `bool` subclasses `int`.
+- **Bounds**: `arrival >= 0`, `burst >= 1`, `quantum >= 1`, `frames >= 1`, `page >= 0`, `cylinders >= 1`, and `0 <= head, request < cylinders`.
+- **Process and matrix invariants**: PIDs must be unique non-empty strings; Banker matrices (`available`, `maximum`, `allocation`) must match dimensions `(n processes x r resources)` with `0 <= allocation[i][j] <= maximum[i][j]`.
 
-CLI batch runs write deterministic files under `outputs/`:
+### Deterministic policy rules
 
-- `outputs/results.json` holds Gantt segments, per-step memory traces, the Banker `Need` matrix and release steps, and disk cylinder routes.
-- `outputs/scheduling.csv`, `outputs/memory.csv`, and `outputs/storage.csv` store flat per-policy comparison tables.
-- `outputs/scheduling.svg`, `outputs/memory.svg`, and `outputs/storage.svg` render standalone `720x310` bar charts viewable offline in any browser.
-- `outputs/activity.log` and `outputs/launcher.log` record local execution history and remain gitignored.
+- **CPU Scheduling (`os_sim/scheduling.py`)**: Models a single core with integer clock ticks, no priorities, and zero context-switch overhead. `FCFS` sorts stably by `(arrival, input_index)`. Non-preemptive `SJF` selects minimum `(burst, arrival, input_index)` among arrived processes, advancing `clock` to the next arrival when the ready set is empty. `RR` runs up to `quantum` ticks per turn and enqueues newly arrived processes (`arrival <= clock`) ahead of the preempted process. CPU utilization is measured over `[min(arrival), max(completion)]`.
+- **Page Replacement (`os_sim/memory.py`)**: `FIFO` evicts the resident page with the earliest load step; `LRU` evicts the resident page with the oldest recent access step. `OPT` inspects future references `references[step + 1:]` and evicts the page needed farthest ahead (or `inf` if never referenced again), acting strictly as an offline lower-bound benchmark rather than an online OS policy.
+- **Banker's Safety Check (`os_sim/deadlock.py`)**: Computes `Need = Maximum - Allocation` and iteratively releases `Allocation[i]` into `Work` for the lowest-index unfinished process with `Need[i] <= Work`. Completing all processes proves the snapshot is `SAFE`. An `UNSAFE` verdict means deadlock avoidance cannot be guaranteed under worst-case remaining requests; it does **not** prove processes are currently deadlocked.
+- **Disk Arm Scheduling (`os_sim/storage.py`)**: Measures `sum(abs(route[k + 1] - route[k]))` in cylinders without rotational latency or SSD translation layers. `SSTF` breaks equal-distance ties by original input index. On every non-empty queue, `SCAN` sweeps all the way to physical boundary `cylinders - 1` (`up`) or `0` (`down`), counts that endpoint leg in total movement, and then reverses for opposite-side requests. Requests at the initial head add no duplicate stop, and an empty queue stays at `[head]` with `0` movement.
 
-Repository verification records live under `docs/` and `evidence/`:
+### Verified baseline benchmarks (`samples/baseline.json`)
 
-- `docs/sample_output_trace.txt`, `docs/unsafe_output_trace.txt`, `docs/invalid_output_trace.txt`, and `docs/menu_output_trace.txt` capture CLI stdout/stderr runs.
-- `docs/test_results.txt` and `docs/web_test_results.txt` record CLI `unittest` and full-stack test outputs.
-- `evidence/test_transcript.txt`, `evidence/baseline_verification.txt`, `evidence/api_verification.txt`, `evidence/migration_status.txt`, and `evidence/build_status.txt` store verification logs.
-- `evidence/memory_chart.png`, `evidence/scheduling_chart.png`, `evidence/storage_chart.png`, and `evidence/terminal_trace.png` are rasterized previews of CLI outputs (not browser screenshots).
-- `evidence/browser/*.png` holds 13 Chromium screenshots captured live by Playwright from KernelScope, indexed in [`evidence/INDEX.md`](evidence/INDEX.md).
+| Domain | Workload summary | Measured results |
+|---|---|---|
+| **CPU** | 4 jobs (`P1: 0/7`, `P2: 2/4`, `P3: 4/1`, `P4: 5/4`), `RR` quantum `2` | Mean wait: **`SJF` 4.00**, **`FCFS` 4.75**, **`RR` 5.00** time units (`100%` utilization, `0.25` throughput) |
+| **Memory** | 13 references (`7, 0, 1, 2, 0, 3, 0, 4, 2, 3, 0, 3, 2`), `3` frames | Page faults: **`OPT` 7** (`53.846%`), **`LRU` 9** (`69.231%`), **`FIFO` 10** (`76.923%`) |
+| **Deadlock** | 5 processes (`P0..P4`), 3 resource types, `Available = [3, 3, 2]` | **`SAFE`** sequence: `P1 -> P3 -> P0 -> P2 -> P4` (final `Work = [10, 5, 7]`) |
+| **Disk** | 8 requests (`98, 183, 37, 122, 14, 124, 65, 67`), `head = 53`, `200` cyl, `SCAN up` | Total movement: **`SSTF` 236**, **`SCAN` 331**, **`FCFS` 640** cylinders |
 
-## Automated tests and reproduction
+Step-by-step hand verification of every baseline figure is documented in [`docs/CORRECTNESS_REVIEW.md`](docs/CORRECTNESS_REVIEW.md) and [`docs/REPORT.md`](docs/REPORT.md).
 
-Quick CLI checks:
+---
 
-```bash
-python3 -m unittest discover -s tests -v
-./run.sh --mode demo --dataset samples/unsafe.json --output outputs/unsafe_case
-./run.sh --mode demo --dataset samples/invalid.json --output outputs/invalid_case
-# Expected: invalid.json exits with status 2, prints ERROR on stderr, and writes no results.json.
-printf '7\n0\n' | ./run.sh --mode menu
-# Expected: warns on choice 7 and prints Goodbye on 0.
-```
+## REST API endpoints
 
-Across the repository, 74 automated tests pass: 30 CLI `unittest` tests, 9 backend `pytest` tests, 26 frontend `Vitest` tests, and 9 Playwright Chromium e2e tests, alongside `tsc -b` and `vite build`. Playwright launches isolated local FastAPI (`127.0.0.1:18100`) and Vite (`127.0.0.1:15174`) processes backed by a temporary SQLite file, exercises all ten routes, verifies KernelScope branding/favicons/themes, checks 375, 768, 1024, and 1440 px viewports for horizontal overflow, and fails on any page or console error.
+| Method & Path | Description |
+|---|---|
+| `GET /api/health`, `GET /api/algorithms` | Service health status and 10-algorithm metadata catalog |
+| `GET /api/dashboard/summary` | Saved run count, dataset count, failed count, 5 recent runs, and 8 recent activity entries |
+| `POST /api/simulations/{cpu,memory,deadlock,disk}` | Validate domain input, execute `os_sim`, persist snapshot + trace, and return run record |
+| `POST /api/simulations/integrated` | Execute all 10 policies across one integrated dataset |
+| `GET /api/simulations`, `GET/DELETE /api/simulations/{id}` | List, reopen, or delete persisted simulation runs (preserving unlinked activity logs) |
+| `GET/POST /api/datasets`, `GET/PUT/DELETE /api/datasets/{id}` | List, validate/create (`201`), update, or delete datasets (keeping past run snapshots intact) |
+| `POST /api/datasets/{id}/duplicate`, `GET /api/datasets/{id}/export` | Clone a dataset or download `dataset-{id}.json` |
+| `GET /api/analytics/overview`, `GET /api/analytics/comparisons` | Workspace totals and runs grouped by `(category, sha256(input_snapshot)[:12])` |
+| `GET /api/reports/{id}`, `GET /api/reports/{id}/export?format=json\|csv` | Fetch completed report data or stream `simulation-{id}.{json,csv}` |
 
-Clean checkout setup and verification:
+Invalid payloads return HTTP `422` with field-level Pydantic details and append a `request.invalid` entry to `activity_logs` without creating a completed simulation row.
+
+---
+
+## Testing and verification
+
+KernelScope includes **74 passing automated tests** across four independent test runners, plus TypeScript project-reference checking and Vite production bundling:
+
+| Suite | Count | Command | Coverage scope |
+|---|---:|---|---|
+| **CLI & Engine (`unittest`)** | `30` | `python3 -m unittest discover -s tests -v` | All 10 algorithms, tie-breakers, `SCAN` boundaries, boolean/negative rejections, CSV/JSON/SVG exports, CLI logs |
+| **Backend API (`pytest`)** | `9` | `PYTHONPATH=. backend/.venv/bin/python -m pytest backend/tests -q` | FastAPI endpoints, `422` validation audit logs, SQLite restart persistence, Banker `declared_totals`, CSV/JSON exports |
+| **Frontend UI (`Vitest`)** | `26` | `npm --prefix frontend test` | Input parsers, `Request + SCAN endpoint` markers, domain formatters, simulator states, API error retry flows |
+| **Browser E2E (`Playwright`)** | `9` | `npm --prefix frontend run test:e2e` | Live Vite + FastAPI over isolated SQLite, all 10 routes, brand/favicons, themes, `375 / 768 / 1024 / 1440 px` bounds, zero console errors |
+
+Run the complete local verification suite from a clean checkout:
 
 ```bash
 python3 -m venv backend/.venv
@@ -133,63 +252,87 @@ backend/.venv/bin/python -m pip install -r backend/requirements.txt
 npm --prefix frontend ci
 (cd frontend && npx playwright install chromium)
 
-chmod +x run.sh
-./run.sh --mode demo
+./run.sh --mode demo --dataset samples/baseline.json --output outputs
 ./run.sh --mode demo --dataset samples/unsafe.json --output outputs/unsafe_case
-./run.sh --mode demo --dataset samples/invalid.json --output outputs/invalid_case
 python3 -m unittest discover -s tests -v
 PYTHONPATH=. backend/.venv/bin/python -m pytest backend/tests -q
 npm --prefix frontend test
 (cd frontend && npx tsc -b --pretty false)
 npm --prefix frontend run build
 npm --prefix frontend run test:e2e
-printf '7\n0\n' | ./run.sh --mode menu
 ```
 
-Baseline figures verified across CLI and web runs (see [`docs/CORRECTNESS_REVIEW.md`](docs/CORRECTNESS_REVIEW.md)):
+---
 
-- CPU mean waiting time: `FCFS` 4.75, `SJF` 4.00, `RR` (quantum 2) 5.00 time units.
-- Memory page faults (13 references, 3 frames): `FIFO` 10, `LRU` 9, `OPT` 7.
-- Banker baseline state: `SAFE` with sequence `P1 -> P3 -> P0 -> P2 -> P4`.
-- Disk total head movement: `FCFS` 640, `SSTF` 236, `SCAN` (`up`) 331 cylinders.
-
-## Troubleshooting
-
-If port `5173` or `8000` is already bound, inspect listeners with `lsof -nP -iTCP:5173 -iTCP:8000 -sTCP:LISTEN` and stop any earlier `start_web.sh` terminal with Ctrl+C.
-
-If backend imports or migrations fail, confirm `python3` is 3.11+, reinstall `backend/requirements.txt` inside `backend/.venv`, and run `PYTHONPATH=. backend/.venv/bin/alembic -c backend/alembic.ini upgrade head`.
-
-If Vite fails to launch, run `npm --prefix frontend ci` and inspect `outputs/web-backend.log` and `outputs/web-frontend.log` alongside `http://localhost:8000/api/health`.
-
-If a custom JSON file exits with code `2`, compare its top-level keys, matrix dimensions, and integer bounds against `samples/baseline.json`. Re-run `./run.sh --mode demo` whenever you switch datasets so `outputs/*.csv` and `outputs/*.svg` stay current.
-
-## Repository map
+## Repository layout
 
 ```text
 Kernel_Scope/
-├── run.sh                         # Bash CLI launcher
-├── start_web.sh                   # Local FastAPI + Vite launcher
-├── frontend/                      # React / TypeScript KernelScope web app
+├── .github/
+│   ├── ISSUE_TEMPLATE/            # Structured bug report and feature proposal forms
+│   ├── PULL_REQUEST_TEMPLATE.md   # Pre-PR verification checklist
+│   └── workflows/ci.yml           # GitHub Actions CI (CLI, FastAPI/pytest, Vitest, Vite build)
+├── backend/
+│   ├── alembic/                   # Schema migration environment and 0001_initial.py
+│   ├── app/                       # FastAPI main, routes, Pydantic schemas, services, ORM models
+│   └── tests/                     # 9 pytest API and SQLite persistence tests
+├── design-system/os-resource-lab/ # KernelScope UI token, typography, and chart spec (MASTER.md)
+├── docs/                          # Phase design, web architecture, report, test plan, demo guides
+├── evidence/
+│   ├── browser/                   # 13 Playwright Chromium screenshots of live KernelScope routes
+│   └── INDEX.md                   # Route-by-route screenshot and state map
+├── frontend/
+│   ├── e2e/acceptance.pw.ts       # 9 Playwright Chromium end-to-end acceptance tests
 │   ├── public/                    # KernelScope SVG/PNG brand marks and favicons
-│   ├── src/                       # Components, API/route helpers, 10 pages, Vitest tests
-│   └── e2e/acceptance.pw.ts       # 9 Playwright Chromium browser acceptance tests
-├── backend/                       # FastAPI routes, Pydantic schemas, SQLAlchemy, Alembic
-├── os_sim/                        # Standard-library Python simulation package
-│   ├── cli.py                     # Batch runner, interactive 0-6 menu, activity logging
-│   ├── validation.py              # Strict int, list, and 2D matrix guards
-│   ├── scheduling.py              # Arrival-aware FCFS, SJF, RR
-│   ├── memory.py                  # FIFO, LRU, offline OPT
-│   ├── deadlock.py                # Multi-resource Banker safety check
-│   ├── storage.py                 # FCFS, SSTF, full-sweep SCAN
-│   └── reporting.py               # Shared analyze(), CSV tables, standalone SVG charts
-├── samples/                       # Baseline, unsafe, and invalid JSON workloads
-├── outputs/                       # Verified baseline and unsafe JSON/CSV/SVG outputs
-├── tests/test_simulator.py        # 30 Python unittest cases
-├── docs/                          # Design, architecture, report, test plan, demo, history notes
-├── design-system/os-resource-lab/ # UI design system reference (MASTER.md)
-└── evidence/                      # Verification transcripts, CLI previews, 13 Playwright PNGs
+│   └── src/                       # App shell, shared UI primitives, helpers, 10 pages, 26 Vitest tests
+├── os_sim/                        # Shared standard-library Python simulation package
+│   ├── cli.py                     # Batch demo runner, interactive 0-6 menu, activity logging
+│   ├── deadlock.py                # Multi-resource Banker's safety check
+│   ├── memory.py                  # FIFO, LRU, and offline OPT page replacement
+│   ├── reporting.py               # Integrated analyze(), CSV writer, standalone SVG bar charts
+│   ├── scheduling.py              # Arrival-aware FCFS, non-preemptive SJF, Round Robin
+│   ├── storage.py                 # FCFS, SSTF, and full-sweep SCAN disk scheduling
+│   └── validation.py              # Strict integer, list, and rectangular matrix guards
+├── outputs/                       # Verified baseline and unsafe JSON, CSV, and SVG exports
+├── samples/                       # baseline.json, unsafe.json, and invalid.json fixtures
+├── tests/test_simulator.py        # 30 CLI and algorithm unittest cases
+├── run.sh                         # Portable Bash CLI entrypoint
+├── start_web.sh                   # Local FastAPI + Vite full-stack launcher
+├── CITATION.cff                   # Academic software citation metadata
+├── CHANGELOG.md                   # Release and milestone history
+├── CODE_OF_CONDUCT.md             # Contributor Covenant code of conduct
+├── CONTRIBUTING.md                # Architecture invariants and contributor workflow
+├── LICENSE                        # MIT License
+└── SECURITY.md                    # Local deployment scope and vulnerability reporting policy
 ```
 
-## Academic submission and authorship notes
+---
 
-[`docs/FINAL_AUDIT.md`](docs/FINAL_AUDIT.md) and [`docs/SUBMISSION_CHECKLIST.md`](docs/SUBMISSION_CHECKLIST.md) map repository artifacts to all five capstone phases. Existing local submission archives (`os_resource_capstone_final.zip` and `os_resource_capstone.zip`) are gitignored and preserved untouched on disk. Before submitting for course credit, include your name, student ID, course metadata, citations, and any required AI-assistance or authorship disclosures specified by your institution, and verify you can explain every algorithm trace and modeling assumption live.
+## Documentation and policies
+
+### Technical documentation
+
+| Document | Contents |
+|---|---|
+| [`docs/DESIGN_AND_PLAN.md`](docs/DESIGN_AND_PLAN.md) | Phase 1 layered CLI data flow, internal data structures, metric equations, and tradeoffs |
+| [`docs/WEB_ARCHITECTURE.md`](docs/WEB_ARCHITECTURE.md) | FastAPI/SQLite/React boundaries, ORM schema, REST contracts, and compatibility paths |
+| [`docs/REPORT.md`](docs/REPORT.md) | Phases 3 & 5 experimental method, baseline comparison tables, and policy tradeoff analysis |
+| [`docs/CORRECTNESS_REVIEW.md`](docs/CORRECTNESS_REVIEW.md) | Hand-worked CPU, memory, Banker, and `SCAN` traces verifying measured outputs |
+| [`docs/TEST_PLAN.md`](docs/TEST_PLAN.md) | `T01` through `T30` unit test matrix plus `pytest`, `Vitest`, and Playwright coverage |
+| [`docs/DEMONSTRATION.md`](docs/DEMONSTRATION.md) | 5 to 7 minute CLI terminal demonstration sequence and instructor Q&A |
+| [`docs/WEB_DEMONSTRATION.md`](docs/WEB_DEMONSTRATION.md) | Live VS Code browser walkthrough and 6-minute spoken presentation script |
+| [`docs/MILESTONE_NOTES_NOV14_NOV21.md`](docs/MILESTONE_NOTES_NOV14_NOV21.md) | Retrospective review (`2026-11-24`) of the Nov 14 CLI and Nov 21 simulator UI milestones |
+| [`design-system/os-resource-lab/MASTER.md`](design-system/os-resource-lab/MASTER.md) | Semantic color palette, WCAG contrast ratios, typography scale, and trace visual rules |
+| [`docs/FINAL_AUDIT.md`](docs/FINAL_AUDIT.md) & [`docs/SUBMISSION_CHECKLIST.md`](docs/SUBMISSION_CHECKLIST.md) | Five-phase capstone deliverable audit and pre-submission student checklist |
+
+### Troubleshooting
+
+- **Port `5173` or `8000` already in use**: Run `lsof -nP -iTCP:5173 -iTCP:8000 -sTCP:LISTEN` and stop any earlier `start_web.sh` session with `Ctrl+C`.
+- **Backend import or migration error**: Confirm `python3 --version` is `3.11+`, run `backend/.venv/bin/python -m pip install -r backend/requirements.txt`, and apply `PYTHONPATH=. backend/.venv/bin/alembic -c backend/alembic.ini upgrade head`.
+- **Dataset rejected with exit status `2`**: Compare required top-level keys, matrix dimensions, and integer bounds against [`samples/baseline.json`](samples/baseline.json) (`samples/invalid.json` intentionally exits with status `2`).
+
+### Project governance, license, and academic integrity
+
+- **License**: Released under the [MIT License](LICENSE).
+- **Policies**: Review [CONTRIBUTING.md](CONTRIBUTING.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), [SECURITY.md](SECURITY.md), [CHANGELOG.md](CHANGELOG.md), and [CITATION.cff](CITATION.cff).
+- **Academic integrity**: When submitting coursework based on this repository, include your student metadata, citations, and any AI-assistance or authorship disclosures required by your institution (`docs/SUBMISSION_CHECKLIST.md`), and make sure you can walk through every algorithm trace and modeling assumption live.
