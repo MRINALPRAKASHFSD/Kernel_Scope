@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you reference KernelScope in coursework or teaching material, please cite it using the metadata below."
+title: "KernelScope: Operating-System Resource Simulation and Algorithm Analytics Workbench"
+type: software
+authors:
+  - given-names: Mrinal
+    family-names: Prakash
+repository-code: "https://github.com/MRINALPRAKASHFSD/Kernel_Scope"
+url: "https://github.com/MRINALPRAKASHFSD/Kernel_Scope"
+license: MIT
+version: 1.0.0
+date-released: "2026-11-24"
+keywords:
+  - operating-systems
+  - cpu-scheduling
+  - page-replacement
+  - bankers-algorithm
+  - disk-scheduling
+  - fastapi
+  - react
+  - typescript
+  - python
+  - sqlite
