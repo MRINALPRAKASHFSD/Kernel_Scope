@@ -1,0 +1,24 @@
+name: Feature or algorithm proposal
+description: Propose a new scheduling/replacement policy, visualization, or workflow enhancement
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    id: domain
+    attributes:
+      label: Resource domain
+      options:
+        - CPU scheduling (e.g. SRTF, Priority, MLFQ)
+        - Memory management (e.g. Clock, LFU)
+        - Deadlock handling (e.g. dynamic resource-request grant check)
+        - Disk scheduling (e.g. C-SCAN, LOOK, C-LOOK)
+        - Web workbench / analytics / exports
+    validations:
+      required: true
+  - type: textarea
+    id: specification
+    attributes:
+      label: Policy definition and tie-breaking rules
+      description: State exact input bounds, deterministic tie-breakers, and output metrics so os_sim results stay reproducible.
+    validations:
+      required: true
