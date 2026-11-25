@@ -1,6 +1,8 @@
-# Contributing to KernelScope
+# Maintainer & Authorized Development Guide
 
-Thank you for taking time to contribute to KernelScope. Whether you are fixing an edge case, adding a new scheduling or paging policy, or tightening documentation, these guidelines keep the CLI and web layers synchronized.
+KernelScope is **proprietary software** (`Copyright (c) 2026 Mrinal Prakash. All Rights Reserved.`). It is **not** licensed for unauthorized public reuse, copying, redistribution, commercial use, or unsolicited derivative works; see [LICENSE](LICENSE) for full terms.
+
+The architecture invariants and verification steps below document the workflow for the repository owner and explicitly authorized collaborators or course evaluators.
 
 ## Core architectural invariants
 

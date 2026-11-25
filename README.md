@@ -11,7 +11,7 @@
 ![React](https://img.shields.io/badge/react-18.3-149ECA?logo=react&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/fastapi-REST%20API-009688?logo=fastapi&logoColor=white)
 ![SQLite](https://img.shields.io/badge/sqlite-Alembic-003B57?logo=sqlite&logoColor=white)
-[![License: MIT](https://img.shields.io/badge/license-MIT-41C7B5)](LICENSE)
+[![License: Proprietary](https://img.shields.io/badge/license-Proprietary%20(All%20Rights%20Reserved)-c93c37)](LICENSE)
 
 [Quick Start](#quick-start) · [Workbench Preview](#workbench-preview) · [Architecture](#architecture) · [Algorithms & Policies](#algorithms-and-policy-rules) · [API Reference](#rest-api-endpoints) · [Testing](#testing-and-verification) · [Documentation](#documentation-and-policies)
 
@@ -301,8 +301,8 @@ Kernel_Scope/
 ├── CITATION.cff                   # Academic software citation metadata
 ├── CHANGELOG.md                   # Release and milestone history
 ├── CODE_OF_CONDUCT.md             # Contributor Covenant code of conduct
-├── CONTRIBUTING.md                # Architecture invariants and contributor workflow
-├── LICENSE                        # MIT License
+├── CONTRIBUTING.md                # Maintainer workflow and architectural invariants
+├── LICENSE                        # Proprietary License (All Rights Reserved)
 └── SECURITY.md                    # Local deployment scope and vulnerability reporting policy
 ```
 
@@ -331,8 +331,8 @@ Kernel_Scope/
 - **Backend import or migration error**: Confirm `python3 --version` is `3.11+`, run `backend/.venv/bin/python -m pip install -r backend/requirements.txt`, and apply `PYTHONPATH=. backend/.venv/bin/alembic -c backend/alembic.ini upgrade head`.
 - **Dataset rejected with exit status `2`**: Compare required top-level keys, matrix dimensions, and integer bounds against [`samples/baseline.json`](samples/baseline.json) (`samples/invalid.json` intentionally exits with status `2`).
 
-### Project governance, license, and academic integrity
+### Copyright, license, and academic integrity
 
-- **License**: Released under the [MIT License](LICENSE).
-- **Policies**: Review [CONTRIBUTING.md](CONTRIBUTING.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), [SECURITY.md](SECURITY.md), [CHANGELOG.md](CHANGELOG.md), and [CITATION.cff](CITATION.cff).
+- **Copyright & License**: **Copyright (c) 2026 Mrinal Prakash. All Rights Reserved.** This repository is proprietary software; unauthorized use, copying, modification, forking, redistribution, or commercial/academic reuse is strictly prohibited without prior written consent. See [LICENSE](LICENSE) for full terms.
+- **Policies**: Review [SECURITY.md](SECURITY.md), [CONTRIBUTING.md](CONTRIBUTING.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), [CHANGELOG.md](CHANGELOG.md), and [CITATION.cff](CITATION.cff).
 - **Academic integrity**: When submitting coursework based on this repository, include your student metadata, citations, and any AI-assistance or authorship disclosures required by your institution (`docs/SUBMISSION_CHECKLIST.md`), and make sure you can walk through every algorithm trace and modeling assumption live.

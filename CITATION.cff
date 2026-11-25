@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-message: "If you reference KernelScope in coursework or teaching material, please cite it using the metadata below."
+message: "Copyright (c) 2026 Mrinal Prakash. All Rights Reserved. Reference metadata for academic evaluation and citation only; no license to reuse, redistribute, or modify the software is granted."
 title: "KernelScope: Operating-System Resource Simulation and Algorithm Analytics Workbench"
 type: software
 authors:
@@ -7,7 +7,6 @@ authors:
     family-names: Prakash
 repository-code: "https://github.com/MRINALPRAKASHFSD/Kernel_Scope"
 url: "https://github.com/MRINALPRAKASHFSD/Kernel_Scope"
-license: MIT
 version: 1.0.0
 date-released: "2026-11-24"
 keywords:
